@@ -1,8 +1,9 @@
 # ABSoSol Volleyball Scout
 
-Eigene Scouting- und Analyse-Software für Volleyball: Live-Scouting mit vollständiger
-Regelabbildung (Punkte, Side-Out, Rotation, Sätze, Wechsel, Auszeiten, Undo) plus — in
-späteren Versionen — Import und Auswertung bestehender DataVolley-Dateien (`.dvw`).
+Eigene Scouting- und Analyse-Software für Volleyball: **Live-Scouting** mit vollständiger
+Regelabbildung (Punkte, Side-Out, Rotation, Sätze, Wechsel, Auszeiten, Undo) und
+**Import bestehender DataVolley-Dateien** (`.dvw`, Upload auf der Matches-Seite).
+Login-pflichtig mit Rollen (admin/viewer). Statistik-Auswertung folgt (Roadmap 2.2).
 
 ## Architektur
 

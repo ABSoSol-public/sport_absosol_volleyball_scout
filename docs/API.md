@@ -1,6 +1,6 @@
 # API-Referenz
 
-Stand: Version 1.0 (2026-07-27). Basis-URL: `/api` (im Compose-Stack über das
+Stand: Version 2.1 (2026-07-28). Basis-URL: `/api` (im Compose-Stack über das
 Frontend erreichbar: `http://localhost:8080/api`, direkt: `http://localhost:8000/api`).
 Interaktive OpenAPI-Doku: **`http://localhost:8000/docs`** (immer aktueller als
 diese Datei — hier stehen Semantik und Beispiele, dort das generierte Schema).

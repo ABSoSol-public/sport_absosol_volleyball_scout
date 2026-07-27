@@ -1,6 +1,6 @@
 # Architektur
 
-Stand: Version 1.0 (2026-07-27)
+Stand: Version 2.1 (2026-07-28) — siehe `docs/ROADMAP.md` für den Versionsverlauf
 
 ## Überblick
 
@@ -29,7 +29,9 @@ backend/
     models/            ORM-Entitäten (siehe docs/DATENBANK.md)
     schemas/           Pydantic-Request-/Response-Modelle
     engine/            Spiellogik (DB-frei, siehe unten)
-    api/               FastAPI-Router: teams, matches, live
+    dvw/               DVW-Parser + -Importer (Analyse-Strang, siehe docs/DVW-FORMAT.md)
+    api/               FastAPI-Router: auth, teams, matches, live, imports
+    cli.py             Verwaltungs-CLI (create-user, via ../create-user.sh)
     main.py            App-Factory, CORS, Router-Registrierung, /health
   alembic/             Migrationen (laufen beim Container-Start automatisch)
   tests/               pytest (Engine, Parser, API über SQLite in-memory)
