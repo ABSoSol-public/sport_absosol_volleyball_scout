@@ -11,6 +11,7 @@ dependencies = [
     "pymysql>=1.1",
     "cryptography>=42",
     "pydantic-settings>=2.3",
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]

@@ -25,10 +25,11 @@ matches ──< live_events          ← Quelle der Wahrheit fürs Live-Scouting
 matches ──< match_sets ──< rallies ──< scout_actions   ← Analyse-/Import-Strang
 ```
 
-Wichtig: Der Live-Strang schreibt in Version 1.0 **nur `live_events`**.
-`match_sets`/`rallies`/`scout_actions` sind für den Analyse-/Import-Strang
-(Roadmap 1.1/1.2) angelegt und werden dort befüllt (DVW-Import bzw. Ableitung
-aus dem Event-Log).
+Wichtig: Der Live-Strang schreibt **nur `live_events`**. Der Analyse-Strang
+(`match_sets`/`rallies`/`scout_actions`) wird seit Version 2.1 vom
+**DVW-Import** befüllt (`POST /api/imports/dvw`, `backend/app/dvw/`);
+die Ableitung live gescouteter Spiele in denselben Strang folgt (ehem.
+Roadmap 1.7).
 
 ## Tabellen
 

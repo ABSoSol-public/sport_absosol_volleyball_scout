@@ -38,6 +38,21 @@ export const api = {
   createMatch: (data) => request("/matches", { method: "POST", body: JSON.stringify(data) }),
   getMatch: (id) => request(`/matches/${id}`),
 
+  importDvw: async (file) => {
+    const body = new FormData();
+    body.append("file", file);
+    const response = await fetch(`${BASE}/imports/dvw`, { method: "POST", body });
+    if (response.status === 401) {
+      window.location.href = "/login";
+      throw new Error("Nicht angemeldet.");
+    }
+    if (!response.ok) {
+      const detail = await response.json().catch(() => ({}));
+      throw new Error(typeof detail.detail === "string" ? detail.detail : response.statusText);
+    }
+    return response.json();
+  },
+
   liveState: (matchId) => request(`/matches/${matchId}/live/state`),
   startSet: (matchId, data) =>
     request(`/matches/${matchId}/live/set`, { method: "POST", body: JSON.stringify(data) }),

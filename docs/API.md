@@ -110,6 +110,21 @@ Einzelnes Match im selben Format wie die Liste.
 
 ---
 
+## DVW-Import
+
+### `POST /api/imports/dvw` → 201
+Multipart-Upload (`file` = `.dvw`-Datei, max. 5 MB). Parst die DataVolley-Datei
+(Legacy-Codepage CP1252 wird erkannt), legt fehlende Teams/Spieler an
+(vorhandene werden über Team-Code/-Name bzw. Trikotnummer wiederverwendet) und
+importiert Match, Sätze, Ballwechsel und Aktionen in den Analyse-Strang:
+
+```json
+{ "match_id": 12, "teams_created": 2, "players_created": 24,
+  "sets": 3, "rallies": 134, "actions": 445 }
+```
+
+Ungültige Datei → 422; Rolle `viewer` → 403.
+
 ## Live-Scouting
 
 Alle Endpunkte liegen unter `/api/matches/{match_id}/live/…` und geben — außer

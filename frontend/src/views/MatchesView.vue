@@ -28,6 +28,25 @@ async function createMatch() {
   }
 }
 
+const importInfo = ref("");
+
+async function importDvw(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  error.value = "";
+  importInfo.value = "Importiere …";
+  try {
+    const result = await api.importDvw(file);
+    importInfo.value = `Import OK: ${result.sets} Sätze, ${result.rallies} Ballwechsel, ${result.actions} Aktionen.`;
+    await load();
+  } catch (e) {
+    importInfo.value = "";
+    error.value = e.message;
+  } finally {
+    event.target.value = "";
+  }
+}
+
 onMounted(load);
 </script>
 
@@ -51,6 +70,13 @@ onMounted(load);
       <button type="submit">Anlegen</button>
     </form>
     <p v-if="teams.length < 2">Zuerst mindestens zwei Teams unter „Teams“ anlegen.</p>
+    <div class="form-row">
+      <label>
+        DataVolley-Datei importieren (.dvw):
+        <input type="file" accept=".dvw" @change="importDvw" />
+      </label>
+      <span v-if="importInfo">{{ importInfo }}</span>
+    </div>
   </div>
 
   <div class="card">

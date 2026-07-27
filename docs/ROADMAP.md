@@ -1,8 +1,9 @@
 # Roadmap
 
-**Aktuelle Version: 1.9 — die App ist live auf der Synology** (`https://volleyball.<ddns-domain>.myds.me`, seit 2026-07-28).
-Umgesetzt: 1.0 (Fundament), 1.4 (Live-Engine), Basis von 1.5 (Live-Frontend), 1.8/1.9 (Deployment).
-Noch offen aus der 1.x-Planung (werden als 2.x weitergeführt): 1.1–1.3 (Analyse-Strang), Rest von 1.5, 1.6, 1.7.
+**Aktuelle Version: 2.1 — App live auf der Synology; Login (2.0) und DVW-Import (2.1) umgesetzt.**
+Umgesetzt: 1.0 (Fundament), 1.4 (Live-Engine), Basis von 1.5 (Live-Frontend), 1.8/1.9 (Deployment),
+2.0 (Login & Rollen), 2.1 (DVW-Einzelimport, ehem. 1.1).
+Noch offen aus der 1.x-Planung: 1.2/1.3 (Statistik, Match-Browser), Rest von 1.5, 1.6, 1.7, DVW-Batch-Import.
 
 ## Versionsschema
 
@@ -29,15 +30,18 @@ Noch offen aus der 1.x-Planung (werden als 2.x weitergeführt): 1.1–1.3 (Analy
 - [x] Docker-Compose **lokal**: Frontend (nginx) + Backend + MariaDB, end-to-end getestet
       (Frontend-Stack: **Vue 3 + Vite**, ebenfalls Nutzerentscheidung 2026-07-27)
 
-### Version 1.1 — DVW-Import (Analyse-Strang, Start)
-- [ ] `src/dv_reader.py` zum vollständigen Parser ausbauen (Basis: `protocol/*.json`,
-      `../recherche/Data_Volley_4_Funktionsanalyse.md` — Tiefenrecherche mit vollständiger
-      Code-Syntax und .dvw-Sektionsreferenz —, `../recherche/DataVolleyMedia_handbook.pdf`,
-      `../recherche/dvwin2007_handbook.pdf`; Korrektheit gegen openvolley/pydatavolley
-      validieren, „german convention": `B/` ↔ `B=` vertauscht)
-- [ ] Import einer einzelnen `.dvw`-Datei in die MariaDB
+### Version 1.1 — DVW-Import (Analyse-Strang, Start) → umgesetzt als **2.1** (2026-07-28)
+- [x] DVW-Parser neu geschrieben (`backend/app/dvw/parser.py` — der alte `src/dv_reader.py`
+      wurde mit dem Neustart entfernt): Sektionen laut `docs/DVW-FORMAT.md`, Tilde-Padding
+      positionsbasiert decodiert, CP1252-Fallback für Altdateien; **an 120 echten
+      Scoutdateien validiert (120/120 fehlerfrei, plausible Aktions-Verteilungen)**
+- [x] Import einer einzelnen `.dvw`-Datei in die MariaDB — `POST /api/imports/dvw`
+      (Upload im Frontend auf der Matches-Seite): Teams/Spieler werden wiederverwendet
+      oder angelegt, Match + Sätze + Ballwechsel + Aktionen landen im Analyse-Strang
+      (`match_sets`/`rallies`/`scout_actions`)
 - [ ] Batch-Import über einen ganzen Ordner (Testquelle lokal: `../volleyscout_2/scoutdata/` —
-      **nie einchecken**, siehe DSGVO-Hinweis in `PROGRESS.md`)
+      **nie einchecken**, siehe DSGVO-Hinweis in `PROGRESS.md`) — bewusst verschoben,
+      bis der Einzel-Import im Alltag bestätigt ist
 
 ### Version 1.2 — Statistik-Auswertung (Analyse-Strang)
 - [ ] Spieler-Statistiken (Asse/Aufschlagfehler, Annahme-Positivquote, Angriffseffizienz,
