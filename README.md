@@ -63,10 +63,11 @@ npm run dev
 
 ## Deployment auf der Synology
 
-Fertige Images baut eine GitHub-Action nach jedem Push auf `master`
-(`.github/workflows/docker-publish.yml` → GHCR). Auf der NAS läuft
-`docker-compose.synology.yml` gegen die Synology-eigene MariaDB; erreichbar ist
-die App über den DSM-Reverse-Proxy unter `volleyball.absosol.myds.me`.
+Gleiches Muster wie beim `yugioh_database`-Projekt: **Quellcode per `git clone`
+auf die NAS, dort mit `docker-compose --env-file .env up -d --build` bauen und
+starten** — dieselbe `docker-compose.yml` wie lokal, keine Registry. Erreichbar
+ist die App über den DSM-Reverse-Proxy unter `volleyball.absosol.myds.me`
+(Subdomain-Muster, feste Container-IP `172.29.0.10` als Proxy-Ziel).
 **Komplette Anleitung: `docs/DEPLOYMENT-SYNOLOGY.md`.**
 
 ## Roadmap & Doku

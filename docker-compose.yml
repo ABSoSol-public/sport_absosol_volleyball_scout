@@ -1,6 +1,13 @@
-# Lokaler Entwicklungs-Stack. Es gibt bewusst KEINEN eigenen DB-Container:
-# einzige Datenbank ist die MariaDB auf der Synology (Nutzerentscheidung 2026-07-28).
-# Zugangsdaten kommen aus der git-ignorierten .env (SYNOLOGY_DB_*, Vorlage .env.example).
+# Einzige Compose-Datei — gilt lokal UND auf der Synology (Muster wie im
+# yugioh_database-Projekt: Quellcode auf die NAS, dort mit --build bauen).
+# Es gibt bewusst KEINEN eigenen DB-Container: einzige Datenbank ist die
+# MariaDB auf der Synology. Konfiguration über die git-ignorierte .env
+# (Vorlage: .env.example). Anleitung: docs/DEPLOYMENT-SYNOLOGY.md
+#
+# Das Netz "volleynet" hat ein festes Subnetz, damit der DSM-Reverse-Proxy
+# auf die feste Container-IP des Frontends (172.29.0.10) zeigen kann —
+# gleiches Muster wie tcgnet/172.28.0.10 im yugioh_database-Projekt, aber
+# eigenes Subnetz, damit beide Stacks parallel auf der NAS laufen können.
 
 services:
   backend:
@@ -8,6 +15,8 @@ services:
     restart: unless-stopped
     environment:
       VOLLEYSCOUT_DATABASE_URL: mysql+pymysql://${SYNOLOGY_DB_USER}:${SYNOLOGY_DB_PASSWORD}@${SYNOLOGY_DB_HOST}:${SYNOLOGY_DB_PORT}/${SYNOLOGY_DB_NAME}?charset=utf8mb4
+    networks:
+      - volleynet
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
 
@@ -16,5 +25,15 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    networks:
+      volleynet:
+        ipv4_address: 172.29.0.10
     ports:
       - "${FRONTEND_PORT:-8080}:80"
+
+networks:
+  volleynet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/24

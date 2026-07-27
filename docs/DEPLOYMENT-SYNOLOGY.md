@@ -1,156 +1,179 @@
-# Deployment auf der Synology — Schritt-für-Schritt
+# Deployment auf der Synology
+
+Gleiches Muster wie beim `yugioh_database`-Projekt (TCG Collection Manager):
+**Quellcode auf die NAS, dort bauen und starten** — keine Registry, keine
+fertigen Images. Eine einzige `docker-compose.yml`, Konfiguration über `.env`.
 
 Ziel: die App läuft auf der NAS und ist unter **https://volleyball.absosol.myds.me**
-erreichbar. Die Container kommen fertig gebaut aus der GitHub-Registry (GHCR),
-die Datenbank ist die MariaDB der Synology (Schema ist dort bereits eingespielt).
+erreichbar (Subdomain-Muster, siehe Abschnitt 7 — die tcg-App bleibt parallel
+unter ihrer eigenen Adresse erreichbar).
 
 ```
-Browser ──HTTPS──► DSM Reverse Proxy (volleyball.absosol.myds.me)
-                        │ HTTP
-                        ▼
-                  frontend-Container (nginx, Port 8080)
-                        │ /api
-                        ▼
-                  backend-Container (FastAPI, intern)
-                        │ mysql 3307
-                        ▼
-                  MariaDB der Synology (DB "volleyball")
+Browser ──HTTPS:443──► Router ──8443──► DSM Reverse Proxy (volleyball.absosol.myds.me)
+                                             │ HTTP
+                                             ▼
+                                       frontend-Container (feste IP 172.29.0.10:80)
+                                             │ /api (Docker-Netz volleynet)
+                                             ▼
+                                       backend-Container (FastAPI)
+                                             │ mysql 3307
+                                             ▼
+                                       MariaDB der Synology (DB "volleyball")
 ```
 
-## Voraussetzungen
+Voraussetzungen: DSM mit Container Manager, laufende MariaDB
+(✅ DB `volleyball` + User `volleyball_database` existieren, Schema per Alembic
+eingespielt am 2026-07-27), SSH-Zugang.
 
-- DSM 7.2+ mit installiertem Paket **Container Manager**.
-- MariaDB-Paket läuft, DB `volleyball` + User `volleyball_database` existieren
-  (✅ erledigt, Schema per Alembic eingespielt am 2026-07-27).
-- DDNS `absosol.myds.me` aktiv; Router leitet Port 443 auf die NAS weiter
-  (besteht i. d. R. schon für DSM/andere Dienste).
-- Die GitHub-Action „Build & Push Container Images" ist auf `master` durchgelaufen
-  (GitHub → Repo → Actions) — sie baut `…-backend` und `…-frontend` für
-  amd64 + arm64.
+## 1. Datenbank vorbereiten
 
-## Schritt 1 — Einmalig: GHCR-Images öffentlich schalten
+**Bereits erledigt** — DB `volleyball`, User `volleyball_database`, Schema liegt
+drin (7 Tabellen + `alembic_version`). Nichts zu tun.
 
-Die Images liegen unter `ghcr.io/absosol-public/sport_absosol_volleyball_scout-{backend,frontend}`.
-GitHub legt Packages standardmäßig **privat** an, auch bei öffentlichen Repos:
+## 2. Projekt auf die Synology bringen
 
-1. github.com → Organisation `ABSoSol-public` → **Packages** →
-   `sport_absosol_volleyball_scout-backend` → **Package settings** →
-   Danger Zone → **Change visibility** → *Public*.
-2. Dasselbe für `…-frontend`.
+Anders als beim tcg-Projekt (damals ohne Git-Remote → `tar` über SSH) hat dieses
+Repo ein öffentliches GitHub-Remote — der in der tcg-Doku als „vorzuziehen"
+beschriebene Weg funktioniert hier direkt:
 
-(Alternative, falls die Images privat bleiben sollen: auf der NAS einmalig per
-SSH `docker login ghcr.io -u <github-user>` mit einem PAT mit `read:packages`.)
+```bash
+ssh admin@<synology-lan-ip>
+mkdir -p /volume1/docker && cd /volume1/docker
+git clone https://github.com/ABSoSol-public/sport_absosol_volleyball_scout.git volleyball
+cd volleyball
+```
 
-## Schritt 2 — Projektordner auf der NAS anlegen
+(Falls `git` auf der NAS fehlt: Paket **Git Server** installieren — es bringt das
+`git`-CLI mit. Alternativ der `tar`-über-SSH-Weg aus der tcg-Doku; `rsync` über
+SSH blockiert DSM, bekannter Stolperstein von dort.)
 
-1. **File Station**: Ordner anlegen, z. B. `docker/volleyball`
-   (→ `/volume1/docker/volleyball`).
-2. Zwei Dateien dorthin hochladen:
-   - `docker-compose.synology.yml` (aus dem Repo)
-   - `.env` — **nicht** die aus dem Repo-Root kopieren müssen: es reichen die
-     Synology-Zeilen. Minimal:
+## 3. Konfiguration
 
-     ```ini
-     SYNOLOGY_DB_HOST=<siehe Hinweis unten>
-     SYNOLOGY_DB_PORT=3307
-     SYNOLOGY_DB_NAME=volleyball
-     SYNOLOGY_DB_USER=volleyball_database
-     SYNOLOGY_DB_PASSWORD=!!!VolleyBall2026!!!
-     FRONTEND_PORT=8080
-     ```
+```bash
+cp .env.example .env
+nano .env
+```
 
-> **Hinweis `SYNOLOGY_DB_HOST`:** Der Backend-Container läuft auf derselben NAS
-> wie die MariaDB. `absosol.myds.me` funktioniert nur, wenn der Router
-> „Hairpin NAT" beherrscht. Robuster ist die **LAN-IP der NAS** (z. B.
-> `192.168.1.x`) oder — da MariaDB auf allen Interfaces lauscht — die
-> Docker-Bridge-Gateway-Adresse `172.17.0.1`. Im Zweifel zuerst mit der LAN-IP
-> testen.
+Wichtige Werte:
 
-## Schritt 3 — Projekt im Container Manager anlegen
+```ini
+SYNOLOGY_DB_HOST=<LAN-IP der Synology>   # NICHT localhost, NICHT die DDNS-Adresse!
+SYNOLOGY_DB_PORT=3307
+SYNOLOGY_DB_NAME=volleyball
+SYNOLOGY_DB_USER=volleyball_database
+SYNOLOGY_DB_PASSWORD=<das Passwort>
+FRONTEND_PORT=8081                        # 8080 ist auf der NAS schon vom tcg-Projekt belegt!
+```
 
-1. **Container Manager** → **Projekt** → **Erstellen**.
-2. Projektname: `volleyball`, Pfad: `docker/volleyball`,
-   Quelle: *docker-compose.yml erstellen → vorhandene auswählen* →
-   `docker-compose.synology.yml`.
-3. Weiter → Erstellen. Der Container Manager zieht die Images und startet beide
-   Container. (Die `.env` im selben Ordner wird automatisch eingelesen.)
+- **`SYNOLOGY_DB_HOST`**: MariaDB läuft als Synology-Paket, nicht im
+  Compose-Netz. `localhost` zeigt im Container auf sich selbst; die DDNS-Adresse
+  scheitert je nach Router am NAT-Loopback. → LAN-IP der NAS (gleiche Erkenntnis
+  wie `DB_HOST` in der tcg-Doku).
+- **`FRONTEND_PORT=8081`**: Host-Port des Frontends. 8080 ist auf dieser NAS
+  bereits vom tcg-Projekt belegt.
 
-Alternative per SSH:
+## 4. Container bauen und starten
+
+**Synology-Besonderheiten** (aus dem tcg-Projekt übernommen, dort getestet):
+Docker-Befehle brauchen `sudo`; je nach DSM-Stand gibt es nur das eigenständige
+`docker-compose` (Bindestrich) unter `/usr/local/bin/docker-compose`, nicht das
+`docker compose`-Subcommand.
 
 ```bash
 cd /volume1/docker/volleyball
-sudo docker compose -f docker-compose.synology.yml up -d
+sudo /usr/local/bin/docker-compose --env-file .env up -d --build
 ```
 
-## Schritt 4 — Interner Funktionstest (vor dem Reverse Proxy)
+Alternativ per GUI: Container Manager → Projekt → Erstellen → Pfad
+`/volume1/docker/volleyball` → vorhandene `docker-compose.yml` auswählen.
 
-Im LAN-Browser: `http://<NAS-IP>:8080` → die App muss laden;
-`http://<NAS-IP>:8080/health` → `{"status":"ok"}`.
+Der Backend-Container wartet beim Start auf die DB und führt automatisch
+`alembic upgrade head` aus — Migrationen ziehen bei jedem Update von selbst nach.
 
-Der Backend-Container führt beim Start automatisch `alembic upgrade head` aus —
-bei künftigen Updates ziehen Migrationen also von selbst nach. Logs bei
-Problemen: Container Manager → Container → `volleyball-backend-1` → Protokoll
-(typisch: DB-Host nicht erreichbar → Schritt-2-Hinweis).
+## 5. Status prüfen
 
-## Schritt 5 — Reverse Proxy für volleyball.absosol.myds.me
+```bash
+sudo /usr/local/bin/docker-compose ps
+sudo /usr/local/bin/docker-compose logs -f backend
+curl http://localhost:8081/health        # {"status":"ok"}
+```
 
-DSM → **Systemsteuerung** → **Anmeldeportal** → **Erweitert** → **Reverse Proxy**
-→ **Erstellen**:
+App im LAN-Browser: `http://<synology-lan-ip>:8081` → Team anlegen →
+erscheint es, schreibt die App nachweislich in die MariaDB.
 
-| Feld | Wert |
-|---|---|
-| Beschreibung | `volleyball` |
-| Quelle: Protokoll | HTTPS |
-| Quelle: Hostname | `volleyball.absosol.myds.me` |
-| Quelle: Port | 443 |
-| Ziel: Protokoll | HTTP |
-| Ziel: Hostname | `localhost` |
-| Ziel: Port | `8080` (= `FRONTEND_PORT`) |
+## 6. HTTPS + Subdomain (DSM-Reverse-Proxy)
 
-Unter *Benutzerdefinierte Kopfzeile* → **Erstellen → WebSocket** die beiden
-Header hinzufügen (schadet nicht und ist für spätere Live-Updates nötig).
+Exakt das Subdomain-Muster aus der tcg-Doku (dort Abschnitt 11). Der Router
+leitet extern **443 → intern 8443** bereits für das tcg-Projekt weiter — diese
+eine Weiterleitung gilt für **alle** Subdomains gemeinsam, hier ist also nichts
+Neues am Router zu tun.
 
-> **DNS:** Subdomains von Synology-DDNS (`*.absosol.myds.me`) zeigen automatisch
-> auf dieselbe IP. Test: `nslookup volleyball.absosol.myds.me` muss die gleiche
-> Adresse liefern wie `absosol.myds.me`.
+1. **Zertifikat**: Systemsteuerung → Sicherheit → Zertifikat → Hinzufügen →
+   „Zertifikat von Let's Encrypt holen" → Domainname:
+   `volleyball.absosol.myds.me`. (Synology-DDNS löst `*.absosol.myds.me`
+   automatisch auf die NAS auf, keine extra DNS-Konfiguration nötig.)
+2. **Reverse Proxy**: Systemsteuerung → Anmeldeportal → Erweitert →
+   Reverse Proxy → Erstellen:
 
-## Schritt 6 — Zertifikat (Let's Encrypt)
+   | Feld | Wert |
+   |---|---|
+   | Beschreibung | `volleyball` |
+   | Quelle: Protokoll | HTTPS |
+   | Quelle: Hostname | `volleyball.absosol.myds.me` |
+   | Quelle: Port | **8443** (nicht 443 — DSMs eigenes Portal schluckt sonst die Regel) |
+   | Ziel: Protokoll | HTTP |
+   | Ziel: Hostname | **`172.29.0.10`** (feste Container-IP, nicht `localhost`, nicht LAN-IP:8081) |
+   | Ziel: Port | **80** (Container-intern, nicht `FRONTEND_PORT`) |
 
-DSM → **Systemsteuerung** → **Sicherheit** → **Zertifikat** → **Hinzufügen**:
+3. **Zertifikat zuweisen**: Systemsteuerung → Sicherheit → Zertifikat →
+   Einstellungen → den neuen Eintrag `volleyball.absosol.myds.me` auf das
+   Subdomain-Zertifikat aus Schritt 1 stellen.
 
-1. *Neues Zertifikat hinzufügen* → *Zertifikat von Let's Encrypt abrufen*.
-2. Domainname: `absosol.myds.me`, **Alternativer Name (SAN)**:
-   `volleyball.absosol.myds.me` — oder direkt ein Wildcard-Zertifikat
-   `*.absosol.myds.me` (bei Synology-DDNS möglich, DSM erledigt die
-   DNS-Challenge selbst).
-3. Danach unter **Zertifikat → Einstellungen** dem Eintrag
-   `volleyball.absosol.myds.me` (Reverse-Proxy-Endpoint) das neue Zertifikat
-   zuweisen.
+**Warum feste Container-IP als Ziel?** Erfahrungswerte aus dem tcg-Projekt:
+`localhost` erreicht Container aus DSMs nginx nicht zuverlässig, und der Weg
+über LAN-IP + veröffentlichten Port lief nach einem DSM-Update intermittierend
+in `INTERNAL_ERROR`-Abbrüche. Die feste IP im eigenen Docker-Netz
+(`volleynet`/172.29.0.10 — bewusst ein anderes Subnetz als `tcgnet`/172.28.0.10,
+damit beide Stacks parallel laufen) umgeht beides.
 
-## Schritt 7 — End-to-End-Verifikation
+## 7. End-to-End-Verifikation
 
-1. `https://volleyball.absosol.myds.me` → App lädt (gültiges Schloss-Symbol).
+1. `https://volleyball.absosol.myds.me` → App lädt mit gültigem Zertifikat.
 2. `https://volleyball.absosol.myds.me/health` → `{"status":"ok"}`.
-3. Team anlegen (Teams → Neues Team) → erscheint es, schreibt die App
-   nachweislich in die Synology-MariaDB.
-4. Gegenprobe DB: phpMyAdmin oder SSH →
-   `SELECT * FROM volleyball.teams;` zeigt das Team.
+3. Team anlegen, Match anlegen, Satz starten, ein paar Rallys scouten, Undo —
+   danach in der DB gegenprüfen: `SELECT * FROM volleyball.live_events;`
 
 ## Updates einspielen
 
-1. Änderungen auf `master` pushen → GitHub-Action baut neue `latest`-Images.
-2. Container Manager → Projekt `volleyball` → **Aktion** → **Bereinigen** ist
-   nicht nötig; **Erstellen/Neu erstellen** mit „Image neu abrufen" genügt.
-   Per SSH: `sudo docker compose -f docker-compose.synology.yml pull && sudo
-   docker compose -f docker-compose.synology.yml up -d`.
-3. Migrationen laufen beim Backend-Start automatisch.
+```bash
+ssh admin@<synology-lan-ip>
+cd /volume1/docker/volleyball
+git pull
+sudo /usr/local/bin/docker-compose --env-file .env up -d --build
+```
+
+Migrationen laufen beim Backend-Neustart automatisch. Stolperstein aus der
+tcg-Doku gilt auch hier: `--build` pullt Basis-Images (`python:3.13-slim`,
+`node:22-alpine`, `nginx:1.27-alpine`) **nicht** neu — bei kryptischen
+Build-Fehlern nach langer Zeit die Basis-Images einmal `sudo docker pull`-en
+und mit `build --no-cache` neu bauen.
+
+## Ports & Firewall
+
+| Port | Zweck |
+|---|---|
+| 8081 (Host, `FRONTEND_PORT`) | Frontend / einziger veröffentlichter App-Port |
+| 8000 (nur 127.0.0.1 der NAS) | Backend direkt, nur für Debugging |
+| 3307 (Synology-MariaDB) | nur intern, niemals ins Internet weiterleiten |
+| extern 443 → intern 8443 | bereits vorhanden (tcg), gilt für alle Subdomains |
 
 ## Troubleshooting
 
 | Symptom | Ursache/Lösung |
 |---|---|
-| Backend-Log: „Datenbank nicht erreichbar" | `SYNOLOGY_DB_HOST` prüfen (LAN-IP statt DDNS-Name, Hairpin-NAT), Port 3307, MariaDB-Paket läuft? |
-| `502 Bad Gateway` unter der Domain | Frontend-Container läuft nicht oder Ziel-Port im Reverse Proxy ≠ `FRONTEND_PORT` |
-| Zertifikatswarnung | Zertifikat nicht dem Reverse-Proxy-Endpoint zugewiesen (Schritt 6.3) |
-| Domain löst nicht auf | DDNS prüfen: `nslookup volleyball.absosol.myds.me`; ggf. DDNS-Eintrag in DSM neu speichern |
-| `docker compose pull` → „denied" | GHCR-Packages noch privat (Schritt 1) |
+| Backend-Log „Datenbank nicht erreichbar" | `SYNOLOGY_DB_HOST` = LAN-IP? Port 3307? MariaDB-Paket läuft? |
+| Port-Konflikt beim Start | `FRONTEND_PORT` kollidiert (8080 = tcg) → 8081 gesetzt? |
+| DSM-Login-Seite statt App unter der Domain | Reverse-Proxy-Quelle steht auf 443 statt **8443** |
+| `502`/hängende Requests über die Domain | Reverse-Proxy-Ziel muss `172.29.0.10:80` sein (nicht localhost/LAN-IP) |
+| Zertifikatswarnung | Zertifikat dem Eintrag `volleyball.absosol.myds.me` zugewiesen (Schritt 6.3)? |
+| `docker-compose: command not found` | Vollen Pfad nutzen: `/usr/local/bin/docker-compose`, mit `sudo` |

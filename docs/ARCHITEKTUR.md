@@ -41,9 +41,9 @@ frontend/
     views/             TeamsView, MatchesView, LiveScoutView
     styles.css         globales Styling (kein CSS-Framework)
   Dockerfile (Node-Build-Stage → nginx), nginx.conf, vite.config.js
-docker-compose.yml            lokaler Stack (baut selbst; DB = Synology-MariaDB)
-docker-compose.synology.yml   NAS-Stack (fertige GHCR-Images; DB = Synology-MariaDB)
-.github/workflows/            CI: Image-Build & Push nach GHCR (amd64+arm64)
+docker-compose.yml     EINE Compose-Datei für lokal und NAS (baut aus dem Quellcode;
+                       DB = Synology-MariaDB; Netz "volleynet" mit fester
+                       Frontend-IP 172.29.0.10 als DSM-Reverse-Proxy-Ziel)
 .env(.example)
 docs/                  diese Doku + ROADMAP.md + DVW-FORMAT.md + DEPLOYMENT-SYNOLOGY.md
 ```
@@ -122,7 +122,7 @@ Roadmap; vollständige Referenz in der DV4-Tiefenrecherche
 | `VOLLEYSCOUT_CORS_ORIGINS` | `["http://localhost:5173", "http://localhost:8080"]` | Dev-CORS |
 | `VOLLEYSCOUT_API_PREFIX`   | `/api`                                       | Router-Präfix             |
 
-Beide Compose-Files setzen `VOLLEYSCOUT_DATABASE_URL` aus den
+Die Compose-Datei setzt `VOLLEYSCOUT_DATABASE_URL` aus den
 `SYNOLOGY_DB_*`-Variablen der `.env` (git-ignoriert; Vorlage `.env.example`).
 Weitere `.env`-Abschnitte:
 `SYNOLOGY_HOST`/`PUBLIC_DOMAIN` (Zieldomain `volleyball.absosol.myds.me` für den

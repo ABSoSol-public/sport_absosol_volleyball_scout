@@ -78,10 +78,12 @@
       `unknown_tokens.csv` aus `../volleyscout_2/scout_app/`)
 
 ### Version 1.8 — Synology-Deployment-Vorbereitung ✅ (2026-07-28)
-- [x] Docker-Compose für Synology — Entscheidung: **Container** (kein NAS-Paket).
-      `docker-compose.synology.yml` nutzt fertige GHCR-Images (GitHub-Action
-      `.github/workflows/docker-publish.yml` baut amd64+arm64 bei jedem Push) und die
-      Synology-eigene MariaDB (bereits angebunden, Schema per Alembic eingespielt 2026-07-27)
+- [x] Docker-Compose für Synology — Entscheidung (revidiert auf Nutzerwunsch, 2026-07-28):
+      **gleiches Muster wie `yugioh_database`** — Quellcode per `git clone` auf die NAS,
+      dort `docker-compose --env-file .env up -d --build`; EINE Compose-Datei für lokal
+      und NAS, DB ist die Synology-MariaDB (Schema per Alembic eingespielt 2026-07-27).
+      Der zwischenzeitliche GHCR-Image-Ansatz (GitHub-Action + separates Synology-Compose)
+      wurde wieder entfernt (Git-History `b7f6c92`)
 - [ ] Backup-Strategie für die Datenbank (bewusst offen — sinnvoll zusammen mit dem
       ersten echten Datenbestand nach dem Livegang)
 - [x] Reverse-Proxy/HTTPS-Vorbereitung — **Zieldomain: `volleyball.absosol.myds.me`**
