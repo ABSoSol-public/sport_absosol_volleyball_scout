@@ -1,6 +1,6 @@
 # Roadmap
 
-**Aktuelle Version: noch keine — in Entwicklung Richtung 1.0.**
+**Aktuelle Version: 1.0** (abgeschlossen 2026-07-27; Teile von 1.4/1.5 wurden vorgezogen, siehe unten).
 
 ## Versionsschema
 
@@ -16,16 +16,23 @@
 
 ## Geplante Versionen (Entwurf, nichts begonnen)
 
-### Version 1.0 — Fundament: Datenmodell & lokale Infrastruktur
-- [ ] Domänenmodell (Match, Team, Player, Set, Rally, Action) — Vorbild: `volleyscout/models.py`
-      aus dem Prototyp `../volleyball_scout/`, aber Ziel-DB MariaDB statt SQLite
-- [ ] MariaDB-Schema (Migrations-Tooling festlegen)
-- [ ] Backend-Grundgerüst (Framework-Entscheidung noch offen) + Projektstruktur
-- [ ] Docker-Compose **lokal**: Backend-Container + MariaDB-Container, lauffähig ohne Synology
+### Version 1.0 — Fundament: Datenmodell & lokale Infrastruktur ✅ (2026-07-27)
+- [x] Domänenmodell (Match, Team, Player, MatchSet, Rally, ScoutAction + LiveEvent) —
+      `backend/app/models/entities.py`; der alte Prototyp-Bestand wurde auf Nutzerwunsch
+      komplett entfernt, alles neu aufgebaut
+- [x] MariaDB-Schema — Alembic als Migrations-Tooling, Initial-Migration
+      `backend/alembic/versions/0001_initial.py`, läuft beim Container-Start automatisch
+- [x] Backend-Grundgerüst — **FastAPI** + SQLAlchemy 2 (Nutzerentscheidung 2026-07-27),
+      Struktur unter `backend/app/` (api/, engine/, models/, schemas/, core/, db/)
+- [x] Docker-Compose **lokal**: Frontend (nginx) + Backend + MariaDB, end-to-end getestet
+      (Frontend-Stack: **Vue 3 + Vite**, ebenfalls Nutzerentscheidung 2026-07-27)
 
 ### Version 1.1 — DVW-Import (Analyse-Strang, Start)
 - [ ] `src/dv_reader.py` zum vollständigen Parser ausbauen (Basis: `protocol/*.json`,
-      `../recherche/DataVolleyMedia_handbook.pdf`, `../recherche/dvwin2007_handbook.pdf`)
+      `../recherche/Data_Volley_4_Funktionsanalyse.md` — Tiefenrecherche mit vollständiger
+      Code-Syntax und .dvw-Sektionsreferenz —, `../recherche/DataVolleyMedia_handbook.pdf`,
+      `../recherche/dvwin2007_handbook.pdf`; Korrektheit gegen openvolley/pydatavolley
+      validieren, „german convention": `B/` ↔ `B=` vertauscht)
 - [ ] Import einer einzelnen `.dvw`-Datei in die MariaDB
 - [ ] Batch-Import über einen ganzen Ordner (Testquelle lokal: `../volleyscout_2/scoutdata/` —
       **nie einchecken**, siehe DSGVO-Hinweis in `PROGRESS.md`)
@@ -41,15 +48,24 @@
 - [ ] Liste importierter Matches
 - [ ] Match-Detailansicht (Teams, Sätze, Ergebnis, Statistik-Panel)
 
-### Version 1.4 — Live-Scouting-Engine (Live-Strang, Start)
-- [ ] Scout-Code-Parser für Direkteingabe (`<Team><Nummer><Skill><Typ?><Bewertung><Zonen?>`)
-- [ ] Match-Engine: Punkte, Rotation, Sätze/Match, Side-Out, Auszeiten, Wechsel, Undo —
-      Vorbild: `volleyscout/engine.py`
+### Version 1.4 — Live-Scouting-Engine (Live-Strang, Start) — vorgezogen umgesetzt in 1.0
+- [x] Scout-Code-Parser für Direkteingabe (`<Team><Nummer><Skill><Typ?><Bewertung><Zonen?>`) —
+      Main-Code umgesetzt in `backend/app/engine/scout_code.py`; Advanced/Extended/Compound
+      folgen später. Vollständige Code-Referenz inkl. Normalisierung, Defaults, Compound Codes
+      und automatischer Codes (`*z`/`*p`/`*P`/`*c`) in
+      `../recherche/Data_Volley_4_Funktionsanalyse.md`, Abschnitt 3;
+      Übernahme-Checkliste dort in Abschnitt 8
+- [x] Match-Engine: Punkte, Rotation, Sätze/Match, Side-Out, Auszeiten, Wechsel, Undo —
+      `backend/app/engine/match_engine.py` (Event-Sourcing über `live_events`,
+      Undo = letztes Event löschen), abgedeckt durch `backend/tests/test_engine.py`
 
-### Version 1.5 — Live-Scouting-Frontend
-- [ ] Web-UI fürs Live-Scouten: Scoreboard, Rotationsdarstellung beider Felder, Klickpfad
-      (Team → Spieler → Skill → Bewertung) **und** Direkteingabe, Undo, Auszeit-/Wechsel-Bedienung
-- [ ] Autosave nach jeder Eingabe (kein Datenverlust bei Absturz)
+### Version 1.5 — Live-Scouting-Frontend — Basis vorgezogen umgesetzt in 1.0
+- [ ] Web-UI fürs Live-Scouten: Scoreboard ✅, Rotationsdarstellung beider Felder ✅,
+      Direkteingabe (Scout-Codes) ✅, Undo ✅, Auszeit-/Wechsel-Bedienung ✅
+      (`frontend/src/views/LiveScoutView.vue`) — **noch offen:** Klickpfad
+      (Team → Spieler → Skill → Bewertung)
+- [x] Autosave nach jeder Eingabe — architektonisch gelöst: jede Eingabe wird sofort als
+      Event in der DB persistiert, der Zustand ist jederzeit per Replay rekonstruierbar
 
 ### Version 1.6 — Zeitstempel & DVW-Export
 - [ ] Zeitstempel je Aktion (Wanduhrzeit + Zeitcode seit Satzbeginn) — gilt für Import **und**

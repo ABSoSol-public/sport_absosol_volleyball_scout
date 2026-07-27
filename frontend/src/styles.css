@@ -1,0 +1,178 @@
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1c2733;
+  background: #f4f6f8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+nav.topnav {
+  background: #b3202c;
+  color: #fff;
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.8rem 1.2rem;
+  align-items: baseline;
+}
+
+nav.topnav .brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-right: 1rem;
+}
+
+nav.topnav a {
+  color: #ffd9dc;
+  text-decoration: none;
+}
+
+nav.topnav a.router-link-active {
+  color: #fff;
+  font-weight: 600;
+  border-bottom: 2px solid #fff;
+}
+
+h1 {
+  font-size: 1.4rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #dde3e9;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+button {
+  background: #b3202c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+button.secondary {
+  background: #33475b;
+}
+
+button:disabled {
+  background: #b9c2cb;
+  cursor: not-allowed;
+}
+
+input,
+select {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #b9c2cb;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid #e6ebf0;
+}
+
+.error {
+  background: #fdecea;
+  color: #8f1d18;
+  border: 1px solid #f5c6c2;
+  border-radius: 6px;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+/* Live-Scouting */
+.scoreboard {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  align-items: center;
+  text-align: center;
+}
+
+.scoreboard .team {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.scoreboard .points {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.scoreboard .sets {
+  color: #5b6b7b;
+}
+
+.serve-dot {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #e8a000;
+  margin: 0 0.4rem;
+  vertical-align: middle;
+}
+
+.court {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  max-width: 260px;
+  margin: 0.5rem auto;
+}
+
+.court .zone {
+  background: #f7e6c4;
+  border: 1px solid #e0c890;
+  border-radius: 6px;
+  text-align: center;
+  padding: 0.6rem 0;
+  font-weight: 600;
+}
+
+.court .zone small {
+  display: block;
+  font-weight: 400;
+  color: #8a7a55;
+  font-size: 0.7rem;
+}
+
+.actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}

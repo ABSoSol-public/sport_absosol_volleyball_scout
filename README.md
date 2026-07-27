@@ -1,25 +1,66 @@
-# donation
-* if you enjoy my stuff and want to make me happy feel free to donate
+# ABSoSol Volleyball Scout
 
+Eigene Scouting- und Analyse-Software für Volleyball: Live-Scouting mit vollständiger
+Regelabbildung (Punkte, Side-Out, Rotation, Sätze, Wechsel, Auszeiten, Undo) plus — in
+späteren Versionen — Import und Auswertung bestehender DataVolley-Dateien (`.dvw`).
 
-Paypal:
-| paypal | 
-|--------|
-|<center> [![](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/donate?hosted_button_id=DWBH85GZTG7Q6) </center>| 
+## Architektur
 
+| Komponente | Technologie | Ort |
+|---|---|---|
+| API + Live-Engine | Python, FastAPI, SQLAlchemy 2, Alembic | `backend/` |
+| Datenbank | MariaDB 11 | Docker-Volume |
+| Frontend | Vue 3 + Vite (SPA), ausgeliefert per nginx | `frontend/` |
 
-Crypto:
-| Dogecoin | ShibaCoin | Bitcoin |
-|----------|-----------|---------|
-| <center> [![](https://api.qrserver.com/v1/create-qr-code/?color=000000&bgcolor=FFFFFF&data=DJaeYqGuZGDWU5waZFBtCa1kB9ZU4Jzx4h&qzone=1&margin=0&size=200x200&ecc=L)](dogecoin:DJaeYqGuZGDWU5waZFBtCa1kB9ZU4Jzx4h) <br /> [DODGE: DJaeYqGuZGDWU5waZFBtCa1kB9ZU4Jzx4h](dodgecoin:DJaeYqGuZGDWU5waZFBtCa1kB9ZU4Jzx4h)</center> | <center> [![](https://api.qrserver.com/v1/create-qr-code/?color=000000&bgcolor=FFFFFF&data=0x959fDCcCF94B255FF3ac1E79Db2897E10918902E&qzone=1&margin=0&size=200x200&ecc=L)](shibacoin:0x959fDCcCF94B255FF3ac1E79Db2897E10918902E) <br /> [SHIB: 0x959fDCcCF94B255FF3ac1E79Db2897E10918902E](dodgecoin:0x959fDCcCF94B255FF3ac1E79Db2897E10918902E)</center> | <center> [![](https://api.qrserver.com/v1/create-qr-code/?color=000000&bgcolor=FFFFFF&data=bc1qwcx8mngt6gkexxwut4qnu27cvawcexfu3t3d3y&qzone=1&margin=0&size=200x200&ecc=L)](dogecoin:bc1qwcx8mngt6gkexxwut4qnu27cvawcexfu3t3d3y) <br /> [SegWit BTC: bc1qwcx8mngt6gkexxwut4qnu27cvawcexfu3t3d3y](bitcoin:bc1qwcx8mngt6gkexxwut4qnu27cvawcexfu3t3d3y)</center>|
+Das Live-Scouting arbeitet mit **Event-Sourcing**: jede Eingabe (Satzstart, Rally,
+Wechsel, Auszeit) wird als Event in `live_events` gespeichert; der Spielstand entsteht
+deterministisch durch Replay in der `MatchEngine` (`backend/app/engine/`). Undo löscht
+das letzte Event — wie das „Undo End Rally" im DataVolley-Vorbild.
 
+Scout-Codes folgen dem DataVolley-Main-Code (`5SQ=`, `a7AT#`, `14AH+45`, …); der Parser
+liegt in `backend/app/engine/scout_code.py`.
 
-Sponsor
-* im also participant of github sponsoring program
-https://github.com/sponsors/ABSoSol-public
+## Lokal starten (Docker)
 
+```bash
+cp .env.example .env   # Werte bei Bedarf anpassen
+docker compose up --build
+```
 
-# py_volleyball_scout_public
-- public repository for specific volleyball scout software for working together
-- lets work together
-- I will share my knowledge with you with special specific converter software and prototypes
+- Frontend: http://localhost:8080
+- API-Doku (OpenAPI): http://localhost:8000/docs
+- MariaDB: localhost:3306 (nur auf 127.0.0.1 gebunden)
+
+Die Alembic-Migrationen laufen beim Backend-Start automatisch (`docker-entrypoint.sh`).
+
+## Entwicklung ohne Docker
+
+```bash
+# Backend (braucht eine erreichbare MariaDB, siehe VOLLEYSCOUT_DATABASE_URL)
+cd backend
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+.venv/bin/uvicorn app.main:app --reload
+
+# Tests (laufen ohne Datenbank, SQLite in-memory)
+.venv/bin/python -m pytest
+
+# Frontend (Dev-Server mit API-Proxy auf localhost:8000)
+cd frontend
+npm install
+npm run dev
+```
+
+## Typischer Ablauf
+
+1. Unter **Teams** beide Teams samt Kader anlegen.
+2. Unter **Matches** ein Match anlegen und **Live-Scouting** öffnen.
+3. Aufstellungen (Zonen 1–6) und Aufschlagteam setzen → Satz starten.
+4. Pro Ballwechsel optional Scout-Codes erfassen, dann „+ Punkt"-Button des
+   Gewinnerteams — Rotation, Aufschlagrecht, Satz- und Matchende übernimmt die Engine.
+
+## Roadmap & Doku
+
+- Versionsplan: `docs/ROADMAP.md`
+- DVW-Dateiformat: `docs/DVW-FORMAT.md`
+- Vollständige DataVolley-4-Referenz (Scout-Code, Formeln): Tiefenrecherche im
+  übergeordneten Projektordner (`../recherche/`, nicht Teil dieses Repos)

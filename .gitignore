@@ -134,3 +134,10 @@ PROGRESS.md
 # Auswertungen fremder Studienarbeiten (personenbezogene Daten der Autoren/Betreuer,
 # urheberrechtlich fremder Inhalt) — nicht fürs öffentliche Repo
 docs/research/
+
+# Node/Frontend
+node_modules/
+frontend/dist/
+
+# Lokale Umgebung
+.env
