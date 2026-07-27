@@ -121,6 +121,9 @@ Roadmap; vollständige Referenz in der DV4-Tiefenrecherche
 | `VOLLEYSCOUT_DATABASE_URL` | `mysql+pymysql://scout:scout@localhost:3306/volleyscout?charset=utf8mb4` | SQLAlchemy-URL |
 | `VOLLEYSCOUT_CORS_ORIGINS` | `["http://localhost:5173", "http://localhost:8080"]` | Dev-CORS |
 | `VOLLEYSCOUT_API_PREFIX`   | `/api`                                       | Router-Präfix             |
+| `VOLLEYSCOUT_SECRET_KEY`   | `dev-insecure-change-me`                     | signiert Session-Tokens — in Produktion Pflicht (`openssl rand -hex 32`) |
+| `VOLLEYSCOUT_COOKIE_SECURE`| `false`                                      | `true` hinter HTTPS (Reverse Proxy) |
+| `VOLLEYSCOUT_SESSION_TTL_HOURS` | `168` (7 Tage)                          | Session-Lebensdauer       |
 
 Die Compose-Datei setzt `VOLLEYSCOUT_DATABASE_URL` aus den
 `SYNOLOGY_DB_*`-Variablen der `.env` (git-ignoriert; Vorlage `.env.example`).
@@ -129,6 +132,18 @@ Weitere `.env`-Abschnitte:
 Reverse Proxy, Roadmap 1.8), `SYNOLOGY_DB_*` (MariaDB auf der NAS — Schema dort
 bereits eingespielt, siehe `docs/DATENBANK.md`) und `SYNOLOGY_SHARE_*`
 (Dateiablage `volleyball_master` für Scouts u. Ä.).
+
+## Authentifizierung
+
+Muster wie im yugioh_database-Projekt: **Login-Pflicht ohne Registrierung**,
+Benutzerverwaltung über `./create-user.sh`, Rollen `admin`/`viewer` (viewer =
+jede Schreibroute liefert 403). Technik: PBKDF2-Passwort-Hashes und
+HMAC-signierte Session-Tokens im HttpOnly-Cookie (`app/core/security.py` —
+bewusst ohne Zusatzabhängigkeiten), Durchsetzung über FastAPI-Dependencies
+(`app/api/deps.py`: `get_current_user` auf allen Fachroutern,
+`require_writer` auf jeder Schreibroute). Frontend: `LoginView`, zentrales
+401-Handling in `src/api.js` (Redirect auf `/login`), Nutzer/Abmelden in der
+Navigation.
 
 ## Teststrategie
 

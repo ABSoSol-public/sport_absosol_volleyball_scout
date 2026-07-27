@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import live, matches, teams
+from app.api import auth, live, matches, teams
+from app.api.deps import get_current_user
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -16,9 +17,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(teams.router, prefix=settings.api_prefix)
-app.include_router(matches.router, prefix=settings.api_prefix)
-app.include_router(live.router, prefix=settings.api_prefix)
+app.include_router(auth.router, prefix=settings.api_prefix)
+# Alle Fachrouten nur mit gültiger Session; Schreibrechte regeln die Endpunkte
+# zusätzlich über require_writer (Rolle "viewer" = nur lesen).
+protected = [Depends(get_current_user)]
+app.include_router(teams.router, prefix=settings.api_prefix, dependencies=protected)
+app.include_router(matches.router, prefix=settings.api_prefix, dependencies=protected)
+app.include_router(live.router, prefix=settings.api_prefix, dependencies=protected)
 
 
 @app.get("/health", tags=["health"])

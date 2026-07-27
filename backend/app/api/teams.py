@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_writer
 from app.db.session import get_db
-from app.models import Player, Team
+from app.models import Player, Team, User
 from app.schemas.team import PlayerCreate, PlayerRead, TeamCreate, TeamDetail, TeamRead
 
 router = APIRouter(prefix="/teams", tags=["teams"])
@@ -15,7 +16,11 @@ def list_teams(db: Session = Depends(get_db)) -> list[Team]:
 
 
 @router.post("", response_model=TeamRead, status_code=201)
-def create_team(data: TeamCreate, db: Session = Depends(get_db)) -> Team:
+def create_team(
+    data: TeamCreate,
+    db: Session = Depends(get_db),
+    _writer: User = Depends(require_writer),
+) -> Team:
     if db.scalar(select(Team).where(Team.code == data.code)):
         raise HTTPException(409, f"Team-Code {data.code!r} existiert bereits.")
     team = Team(code=data.code, name=data.name)
@@ -34,7 +39,12 @@ def get_team(team_id: int, db: Session = Depends(get_db)) -> Team:
 
 
 @router.post("/{team_id}/players", response_model=PlayerRead, status_code=201)
-def add_player(team_id: int, data: PlayerCreate, db: Session = Depends(get_db)) -> Player:
+def add_player(
+    team_id: int,
+    data: PlayerCreate,
+    db: Session = Depends(get_db),
+    _writer: User = Depends(require_writer),
+) -> Player:
     team = db.get(Team, team_id)
     if team is None:
         raise HTTPException(404, "Team nicht gefunden.")

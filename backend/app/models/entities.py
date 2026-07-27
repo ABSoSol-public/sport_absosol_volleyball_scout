@@ -18,6 +18,16 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(256))
+    role: Mapped[str] = mapped_column(String(16), default="admin")  # admin | viewer
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
 class Team(Base):
     __tablename__ = "teams"
 

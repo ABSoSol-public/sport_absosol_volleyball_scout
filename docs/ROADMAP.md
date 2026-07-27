@@ -106,6 +106,14 @@ Noch offen aus der 1.x-Planung (werden als 2.x weitergeführt): 1.1–1.3 (Analy
 Statistik 1.2, Match-Browser 1.3, Klickpfad 1.5, Zeitstempel/Export 1.6, Zusammenführung 1.7
 sowie Backup-Strategie aus 1.8) wird ab jetzt als 2.x nummeriert bzw. neu zugeschnitten.
 
+### Version 2.0 — Login & Rollen ✅ (2026-07-28)
+- [x] Login-Pflicht für die gesamte API/App (Nutzerwunsch direkt nach dem Livegang,
+      da die App öffentlich erreichbar ist) — Muster wie yugioh_database: keine
+      Registrierung, `create-user.sh`, Rollen **admin** (Vollzugriff) / **viewer**
+      (nur lesen, Schreibrouten → 403). Sessions als HMAC-signierte HttpOnly-Cookies,
+      PBKDF2-Passwort-Hashes, Migration `0002_users`; Frontend mit Login-View,
+      401-Redirect und Abmelden. Zwei Nutzer angelegt (`scout` = admin, `viewer`)
+
 ## Hinweis zur Nummerierung
 
 Diese Liste ist ein **Entwurf** zum jetzigen Zeitpunkt (2026-07-27) — Reihenfolge/Schnitt der

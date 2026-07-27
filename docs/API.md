@@ -13,9 +13,33 @@ Alle Bodies sind JSON. Fehlerformat (FastAPI-Standard):
 
 | Status | Bedeutung |
 |---|---|
+| 401 | Nicht angemeldet / Session abgelaufen (alle `/api`-Routen außer `/auth/login`) |
+| 403 | Rolle `viewer` versucht eine schreibende Aktion |
 | 404 | Ressource nicht gefunden (Team/Match) |
 | 409 | Konflikt (Team-Code oder Trikotnummer bereits vergeben) |
 | 422 | Validierungsfehler **oder Regelverstoß** der Live-Engine (mit deutscher Meldung) |
+
+---
+
+## Authentifizierung
+
+Alle `/api`-Routen erfordern eine Session (HttpOnly-Cookie `volleyscout_session`,
+SameSite=Lax, `Secure` hinter HTTPS); nur `/health` und `/api/auth/login` sind offen.
+Es gibt **keine Registrierung** — Benutzer legt `./create-user.sh <name> <pw> [admin|viewer]`
+an (bei bestehendem Namen: Passwort-Reset). Rollen: `admin` = Vollzugriff,
+`viewer` = nur lesen (jede schreibende Route → 403).
+
+### `POST /api/auth/login`
+```json
+{ "username": "scout", "password": "…" }
+```
+→ `{ "username": "scout", "role": "admin" }` + Session-Cookie. Falsche Daten → 401.
+
+### `POST /api/auth/logout`
+Löscht das Session-Cookie.
+
+### `GET /api/auth/me`
+→ `{ "username": "...", "role": "admin|viewer" }` — für Frontend-Zustand.
 
 ---
 

@@ -53,8 +53,16 @@ npm install
 npm run dev
 ```
 
+## Login
+
+Die App ist komplett login-pflichtig (keine Registrierung). Benutzer anlegen /
+Passwort zurücksetzen: `./create-user.sh <name> <passwort> [admin|viewer]` —
+`viewer` bekommt Nur-Lese-Zugriff. Session-Signierung über
+`VOLLEYSCOUT_SECRET_KEY` in der `.env` (siehe `.env.example`).
+
 ## Typischer Ablauf
 
+0. Anmelden (Benutzer siehe oben).
 1. Unter **Teams** beide Teams samt Kader anlegen.
 2. Unter **Matches** ein Match anlegen und **Live-Scouting** öffnen.
 3. Aufstellungen (Zonen 1–6) und Aufschlagteam setzen → Satz starten.

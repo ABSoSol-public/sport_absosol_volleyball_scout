@@ -32,6 +32,17 @@ aus dem Event-Log).
 
 ## Tabellen
 
+### `users` (Login, seit Migration 0002)
+| Spalte | Typ | Hinweise |
+|---|---|---|
+| id | INT PK | |
+| username | VARCHAR(64) | UNIQUE |
+| password_hash | VARCHAR(256) | PBKDF2-HMAC-SHA256 (`pbkdf2$iter$salt$hash`) |
+| role | VARCHAR(16) | `admin` (Vollzugriff) \| `viewer` (nur lesen) |
+| created_at | DATETIME | UTC |
+
+Anlage/Passwort-Reset ausschließlich über `./create-user.sh` (keine Registrierung).
+
 ### `teams`
 | Spalte | Typ | Hinweise |
 |---|---|---|

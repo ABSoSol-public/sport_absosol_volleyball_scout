@@ -15,6 +15,8 @@ services:
     restart: unless-stopped
     environment:
       VOLLEYSCOUT_DATABASE_URL: mysql+pymysql://${SYNOLOGY_DB_USER}:${SYNOLOGY_DB_PASSWORD}@${SYNOLOGY_DB_HOST}:${SYNOLOGY_DB_PORT}/${SYNOLOGY_DB_NAME}?charset=utf8mb4
+      VOLLEYSCOUT_SECRET_KEY: ${VOLLEYSCOUT_SECRET_KEY:?In .env setzen (openssl rand -hex 32)}
+      VOLLEYSCOUT_COOKIE_SECURE: ${VOLLEYSCOUT_COOKIE_SECURE:-false}
     networks:
       - volleynet
     ports:

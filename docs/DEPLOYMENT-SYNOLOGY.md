@@ -63,6 +63,8 @@ SYNOLOGY_DB_NAME=volleyball
 SYNOLOGY_DB_USER=volleyball_database
 SYNOLOGY_DB_PASSWORD=<das Passwort>
 FRONTEND_PORT=8081                        # 8080 ist auf der NAS schon vom tcg-Projekt belegt!
+VOLLEYSCOUT_SECRET_KEY=<openssl rand -hex 32>   # Pflicht — signiert die Login-Sessions
+VOLLEYSCOUT_COOKIE_SECURE=true            # Login-Cookie nur über HTTPS ausliefern
 ```
 
 - **`SYNOLOGY_DB_HOST`**: MariaDB läuft als Synology-Paket, nicht im
@@ -135,6 +137,24 @@ Neues am Router zu tun.
 in `INTERNAL_ERROR`-Abbrüche. Die feste IP im eigenen Docker-Netz
 (`volleynet`/172.29.0.10 — bewusst ein anderes Subnetz als `tcgnet`/172.28.0.10,
 damit beide Stacks parallel laufen) umgeht beides.
+
+## 6b. Login-Benutzer anlegen
+
+Ohne Benutzer kommt niemand über den Login hinaus (bewusst keine Registrierung).
+Auf der NAS im Projektordner:
+
+```bash
+sudo /usr/local/bin/docker-compose exec -T backend python -m app.cli create-user <name> <passwort> [admin|viewer]
+```
+
+(Oder von einem Rechner mit laufendem lokalem Stack: `./create-user.sh …` —
+beide schreiben in dieselbe Synology-DB.) Erneuter Aufruf mit gleichem Namen
+setzt das Passwort neu; `viewer` = Nur-Lese-Zugriff.
+
+> Hinweis bei `VOLLEYSCOUT_COOKIE_SECURE=true`: der Login funktioniert dann nur
+> über HTTPS (also über die Domain), nicht mehr über `http://<NAS-IP>:8081` —
+> das ist Absicht (kein Klartext-Login im LAN), zum Debuggen notfalls kurzzeitig
+> auf `false` stellen und neu starten.
 
 ## 7. End-to-End-Verifikation
 

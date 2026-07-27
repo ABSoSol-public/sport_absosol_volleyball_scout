@@ -5,6 +5,11 @@ async function request(path, options = {}) {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
+  if (response.status === 401 && !path.startsWith("/auth/")) {
+    // Session fehlt/abgelaufen → zum Login (harter Redirect hält es simpel)
+    window.location.href = "/login";
+    throw new Error("Nicht angemeldet.");
+  }
   if (!response.ok) {
     let detail = response.statusText;
     try {
@@ -19,6 +24,10 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  login: (data) => request("/auth/login", { method: "POST", body: JSON.stringify(data) }),
+  logout: () => request("/auth/logout", { method: "POST" }),
+  me: () => request("/auth/me"),
+
   listTeams: () => request("/teams"),
   createTeam: (data) => request("/teams", { method: "POST", body: JSON.stringify(data) }),
   getTeam: (id) => request(`/teams/${id}`),

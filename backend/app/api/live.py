@@ -12,10 +12,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_writer
 from app.db.session import get_db
 from app.engine import MatchEngine, Rules, RuleViolation
 from app.engine.scout_code import ScoutCodeError, parse_action
-from app.models import LiveEvent, Match
+from app.models import LiveEvent, Match, User
 from app.schemas.live import RallyRequest, StartSetRequest, SubstitutionRequest, TimeoutRequest
 
 router = APIRouter(prefix="/matches/{match_id}/live", tags=["live"])
@@ -80,13 +81,13 @@ def get_state(match_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
 
 
 @router.post("/set")
-def start_set(match_id: int, data: StartSetRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+def start_set(match_id: int, data: StartSetRequest, db: Session = Depends(get_db), _writer: User = Depends(require_writer)) -> dict[str, Any]:
     match = _load_match(match_id, db)
     return _append_event(match, "start_set", data.model_dump(), db)
 
 
 @router.post("/rally")
-def record_rally(match_id: int, data: RallyRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+def record_rally(match_id: int, data: RallyRequest, db: Session = Depends(get_db), _writer: User = Depends(require_writer)) -> dict[str, Any]:
     match = _load_match(match_id, db)
     actions: list[dict[str, Any]] = []
     for code in data.actions:
@@ -99,7 +100,8 @@ def record_rally(match_id: int, data: RallyRequest, db: Session = Depends(get_db
 
 @router.post("/substitution")
 def record_substitution(
-    match_id: int, data: SubstitutionRequest, db: Session = Depends(get_db)
+    match_id: int, data: SubstitutionRequest, db: Session = Depends(get_db),
+    _writer: User = Depends(require_writer),
 ) -> dict[str, Any]:
     match = _load_match(match_id, db)
     return _append_event(match, "substitution", data.model_dump(), db)
@@ -107,14 +109,17 @@ def record_substitution(
 
 @router.post("/timeout")
 def record_timeout(
-    match_id: int, data: TimeoutRequest, db: Session = Depends(get_db)
+    match_id: int, data: TimeoutRequest, db: Session = Depends(get_db),
+    _writer: User = Depends(require_writer),
 ) -> dict[str, Any]:
     match = _load_match(match_id, db)
     return _append_event(match, "timeout", data.model_dump(), db)
 
 
 @router.post("/undo")
-def undo_last_event(match_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+def undo_last_event(
+    match_id: int, db: Session = Depends(get_db), _writer: User = Depends(require_writer)
+) -> dict[str, Any]:
     match = _load_match(match_id, db)
     events = _events(match_id, db)
     if not events:

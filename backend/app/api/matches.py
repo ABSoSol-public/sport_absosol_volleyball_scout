@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_writer
 from app.db.session import get_db
-from app.models import Match, Team
+from app.models import Match, Team, User
 from app.schemas.match import MatchCreate, MatchRead
 
 router = APIRouter(prefix="/matches", tags=["matches"])
@@ -15,7 +16,11 @@ def list_matches(db: Session = Depends(get_db)) -> list[Match]:
 
 
 @router.post("", response_model=MatchRead, status_code=201)
-def create_match(data: MatchCreate, db: Session = Depends(get_db)) -> Match:
+def create_match(
+    data: MatchCreate,
+    db: Session = Depends(get_db),
+    _writer: User = Depends(require_writer),
+) -> Match:
     for team_id in (data.home_team_id, data.away_team_id):
         if db.get(Team, team_id) is None:
             raise HTTPException(404, f"Team {team_id} nicht gefunden.")
