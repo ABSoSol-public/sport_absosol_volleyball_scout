@@ -1,7 +1,8 @@
 # Datenbank
 
-Stand: Version 1.0 (2026-07-27). Ziel-DB: **MariaDB 11** (Charset utf8mb4);
-die Tests laufen gegen SQLite in-memory, das Schema ist auf beides portabel.
+Stand: Version 1.0 (2026-07-27). Ziel-DB: **MariaDB** (lokal 11 via Compose,
+auf der Synology 10.11 — das Schema nutzt nur Features, die beide können;
+Charset utf8mb4). Die Tests laufen gegen SQLite in-memory.
 ORM-Definitionen: `backend/app/models/entities.py`.
 
 ## Migrationen (Alembic)
@@ -139,7 +140,9 @@ bis dahin bleibt alles verlustfrei im `raw_code`.
 - **Zugriff lokal**: `mysql -h 127.0.0.1 -P 3306 -u scout -pscout volleyscout`
   (Werte aus `.env`; Port ist nur an 127.0.0.1 gebunden).
 - **Reset lokal**: `docker compose down -v` (löscht das Volume `db_data`).
-- **Synology**: Zugangsdaten liegen in der git-ignorierten `.env`
-  (`SYNOLOGY_DB_*`); Host/Port/DB-Name sind vor dem Deployment zu verifizieren,
+- **Synology**: Zugangsdaten und Verbindungsdaten liegen in der git-ignorierten
+  `.env` (`SYNOLOGY_DB_*`). Das Schema wurde dort bereits per
+  `alembic upgrade head` eingespielt (2026-07-27, MariaDB 10.11); künftige
+  Migrationen laufen auf demselben Weg bzw. beim Backend-Deployment automatisch.
   Passwort-Sonderzeichen in der SQLAlchemy-URL URL-encodieren.
   Backup-Strategie ist Roadmap 1.8.
