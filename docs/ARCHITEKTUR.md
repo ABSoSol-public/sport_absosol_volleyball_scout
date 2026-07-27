@@ -120,7 +120,11 @@ Roadmap; vollständige Referenz in der DV4-Tiefenrecherche
 
 Compose setzt `VOLLEYSCOUT_DATABASE_URL` aus den `DB_*`-Variablen der `.env`
 (siehe `.env.example`; die echte `.env` ist git-ignoriert und enthält zusätzlich
-die Synology-Zugangsdaten für das spätere Deployment).
+die Synology-Zugangsdaten für das Deployment). Weitere `.env`-Abschnitte:
+`SYNOLOGY_HOST`/`PUBLIC_DOMAIN` (Zieldomain `volleyball.absosol.myds.me` für den
+Reverse Proxy, Roadmap 1.8), `SYNOLOGY_DB_*` (MariaDB auf der NAS — Schema dort
+bereits eingespielt, siehe `docs/DATENBANK.md`) und `SYNOLOGY_SHARE_*`
+(Dateiablage `volleyball_master` für Scouts u. Ä.).
 
 ## Teststrategie
 
