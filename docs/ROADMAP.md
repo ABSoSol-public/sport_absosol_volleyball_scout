@@ -1,6 +1,8 @@
 # Roadmap
 
-**Aktuelle Version: 1.0** (abgeschlossen 2026-07-27; Teile von 1.4/1.5 wurden vorgezogen, siehe unten).
+**Aktuelle Version: 1.9 — die App ist live auf der Synology** (`https://volleyball.absosol.myds.me`, seit 2026-07-28).
+Umgesetzt: 1.0 (Fundament), 1.4 (Live-Engine), Basis von 1.5 (Live-Frontend), 1.8/1.9 (Deployment).
+Noch offen aus der 1.x-Planung (werden als 2.x weitergeführt): 1.1–1.3 (Analyse-Strang), Rest von 1.5, 1.6, 1.7.
 
 ## Versionsschema
 
@@ -93,11 +95,16 @@
       2026-07-27): GHCR-Sichtbarkeit, Projektordner, Container Manager, interner Test,
       Reverse Proxy, Zertifikat, End-to-End-Verifikation, Updates, Troubleshooting
 
-### Version 1.9 — Erster Livegang auf der Synology
-- [ ] Deployment durchgeführt, Health-Check, End-to-End live verifiziert
+### Version 1.9 — Erster Livegang auf der Synology ✅ (2026-07-28)
+- [x] Deployment durchgeführt, Health-Check, End-to-End live verifiziert —
+      die App läuft unter **https://volleyball.absosol.myds.me** (Let's-Encrypt-Zertifikat
+      gültig bis Okt. 2026, Reverse Proxy auf 172.29.0.10:80, parallel zum tcg-Stack).
+      Ablauf: Nutzer hat geclont + gebaut + DSM-Schritte geklickt; `.env`, Vorprüfungen
+      und Verifikation liefen per SSH (siehe `PROGRESS.md`)
 
-**→ Version 2.0 beginnt erst hier**, mit allem, was nach dem ersten produktiven Betrieb als
-Nächstes angegangen wird (noch nicht geplant).
+**→ Die 2.x-Reihe beginnt hier**: alles Weitere (offene 1.x-Reste wie DVW-Import 1.1,
+Statistik 1.2, Match-Browser 1.3, Klickpfad 1.5, Zeitstempel/Export 1.6, Zusammenführung 1.7
+sowie Backup-Strategie aus 1.8) wird ab jetzt als 2.x nummeriert bzw. neu zugeschnitten.
 
 ## Hinweis zur Nummerierung
 
