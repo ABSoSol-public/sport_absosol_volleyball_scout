@@ -97,7 +97,7 @@ Noch offen aus der 1.x-Planung (werden als 2.x weitergeführt): 1.1–1.3 (Analy
 
 ### Version 1.9 — Erster Livegang auf der Synology ✅ (2026-07-28)
 - [x] Deployment durchgeführt, Health-Check, End-to-End live verifiziert —
-      die App läuft unter **https://volleyball.<ddns-domain>.myds.me** (Let's-Encrypt-Zertifikat
+      die App läuft unter **https://volleyball.<ddns-domain>** (Let's-Encrypt-Zertifikat
       gültig bis Okt. 2026, Reverse Proxy auf 172.29.0.10:80, parallel zum tcg-Stack).
       Ablauf: Nutzer hat geclont + gebaut + DSM-Schritte geklickt; `.env`, Vorprüfungen
       und Verifikation liefen per SSH (siehe `PROGRESS.md`)
