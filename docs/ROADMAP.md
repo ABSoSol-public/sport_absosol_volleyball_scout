@@ -77,18 +77,19 @@
 - [ ] Validierung/Fehlerbehandlung, Protokoll unbekannter/nicht erkannter Codes (Vorbild:
       `unknown_tokens.csv` aus `../volleyscout_2/scout_app/`)
 
-### Version 1.8 — Synology-Deployment-Vorbereitung
-- [ ] Docker-Compose für Synology (Volumes, Env-Vars, MariaDB-Anbindung — eigenständiges
-      NAS-Paket vs. Container ist hier noch zu entscheiden).
-      Teilweise vorweggenommen (2026-07-27): die Synology-MariaDB ist bereits angebunden
-      und das Schema per Alembic eingespielt
-- [ ] Backup-Strategie für die Datenbank
-- [ ] Reverse-Proxy/HTTPS-Vorbereitung — **Zieldomain: `volleyball.absosol.myds.me`**
-      (Nutzervorgabe 2026-07-27; Subdomain der Synology-DDNS-Domain)
-- [ ] **Schritt-für-Schritt-Anleitung** für den Nutzer als `docs/DEPLOYMENT-SYNOLOGY.md`
-      (Nutzerwunsch 2026-07-27): Container auf die NAS bringen, Reverse Proxy im DSM auf
-      die Zieldomain einrichten, Zertifikat, Verifikation — analog zum Muster
-      `yugioh_database/docs/DEPLOYMENT-SYNOLOGY.md`
+### Version 1.8 — Synology-Deployment-Vorbereitung ✅ (2026-07-28)
+- [x] Docker-Compose für Synology — Entscheidung: **Container** (kein NAS-Paket).
+      `docker-compose.synology.yml` nutzt fertige GHCR-Images (GitHub-Action
+      `.github/workflows/docker-publish.yml` baut amd64+arm64 bei jedem Push) und die
+      Synology-eigene MariaDB (bereits angebunden, Schema per Alembic eingespielt 2026-07-27)
+- [ ] Backup-Strategie für die Datenbank (bewusst offen — sinnvoll zusammen mit dem
+      ersten echten Datenbestand nach dem Livegang)
+- [x] Reverse-Proxy/HTTPS-Vorbereitung — **Zieldomain: `volleyball.absosol.myds.me`**
+      (Nutzervorgabe 2026-07-27), dokumentiert als DSM-Klickanleitung inkl.
+      Let's-Encrypt-Zertifikat
+- [x] **Schritt-für-Schritt-Anleitung** `docs/DEPLOYMENT-SYNOLOGY.md` (Nutzerwunsch
+      2026-07-27): GHCR-Sichtbarkeit, Projektordner, Container Manager, interner Test,
+      Reverse Proxy, Zertifikat, End-to-End-Verifikation, Updates, Troubleshooting
 
 ### Version 1.9 — Erster Livegang auf der Synology
 - [ ] Deployment durchgeführt, Health-Check, End-to-End live verifiziert

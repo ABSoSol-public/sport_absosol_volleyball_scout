@@ -40,8 +40,11 @@ frontend/
     views/             TeamsView, MatchesView, LiveScoutView
     styles.css         globales Styling (kein CSS-Framework)
   Dockerfile (Node-Build-Stage → nginx), nginx.conf, vite.config.js
-docker-compose.yml, .env(.example)
-docs/                  diese Doku + ROADMAP.md + DVW-FORMAT.md
+docker-compose.yml            lokaler Stack (baut selbst, eigener MariaDB-Container)
+docker-compose.synology.yml   NAS-Stack (GHCR-Images, Synology-MariaDB)
+.github/workflows/            CI: Image-Build & Push nach GHCR (amd64+arm64)
+.env(.example)
+docs/                  diese Doku + ROADMAP.md + DVW-FORMAT.md + DEPLOYMENT-SYNOLOGY.md
 ```
 
 ## Kernkonzept: Event-Sourcing fürs Live-Scouting

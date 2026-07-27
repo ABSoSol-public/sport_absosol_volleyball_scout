@@ -1,0 +1,20 @@
+# Deployment auf der Synology (Roadmap 1.8/1.9).
+# Nutzt die fertigen Images aus der GitHub-Registry (per GitHub-Action gebaut)
+# und die MariaDB der Synology selbst — hier läuft also KEIN eigener DB-Container.
+# Benötigt eine .env im selben Ordner (Vorlage: .env.example, Abschnitt SYNOLOGY_*).
+# Anleitung: docs/DEPLOYMENT-SYNOLOGY.md
+
+services:
+  backend:
+    image: ghcr.io/absosol-public/sport_absosol_volleyball_scout-backend:latest
+    restart: unless-stopped
+    environment:
+      VOLLEYSCOUT_DATABASE_URL: mysql+pymysql://${SYNOLOGY_DB_USER}:${SYNOLOGY_DB_PASSWORD}@${SYNOLOGY_DB_HOST}:${SYNOLOGY_DB_PORT}/${SYNOLOGY_DB_NAME}?charset=utf8mb4
+
+  frontend:
+    image: ghcr.io/absosol-public/sport_absosol_volleyball_scout-frontend:latest
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"

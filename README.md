@@ -58,8 +58,17 @@ npm run dev
 4. Pro Ballwechsel optional Scout-Codes erfassen, dann „+ Punkt"-Button des
    Gewinnerteams — Rotation, Aufschlagrecht, Satz- und Matchende übernimmt die Engine.
 
+## Deployment auf der Synology
+
+Fertige Images baut eine GitHub-Action nach jedem Push auf `master`
+(`.github/workflows/docker-publish.yml` → GHCR). Auf der NAS läuft
+`docker-compose.synology.yml` gegen die Synology-eigene MariaDB; erreichbar ist
+die App über den DSM-Reverse-Proxy unter `volleyball.absosol.myds.me`.
+**Komplette Anleitung: `docs/DEPLOYMENT-SYNOLOGY.md`.**
+
 ## Roadmap & Doku
 
+- Synology-Deployment (Schritt für Schritt): `docs/DEPLOYMENT-SYNOLOGY.md`
 - Architektur (Komponenten, Event-Sourcing, Engine, Konfiguration): `docs/ARCHITEKTUR.md`
 - API-Referenz (Endpunkte, Beispiele, Fehlersemantik): `docs/API.md` —
   interaktiv unter http://localhost:8000/docs
