@@ -1,6 +1,6 @@
 # Roadmap
 
-**Aktuelle Version: 1.9 — die App ist live auf der Synology** (`https://volleyball.absosol.myds.me`, seit 2026-07-28).
+**Aktuelle Version: 1.9 — die App ist live auf der Synology** (`https://volleyball.<ddns-domain>.myds.me`, seit 2026-07-28).
 Umgesetzt: 1.0 (Fundament), 1.4 (Live-Engine), Basis von 1.5 (Live-Frontend), 1.8/1.9 (Deployment).
 Noch offen aus der 1.x-Planung (werden als 2.x weitergeführt): 1.1–1.3 (Analyse-Strang), Rest von 1.5, 1.6, 1.7.
 
@@ -88,7 +88,7 @@ Noch offen aus der 1.x-Planung (werden als 2.x weitergeführt): 1.1–1.3 (Analy
       wurde wieder entfernt (Git-History `b7f6c92`)
 - [ ] Backup-Strategie für die Datenbank (bewusst offen — sinnvoll zusammen mit dem
       ersten echten Datenbestand nach dem Livegang)
-- [x] Reverse-Proxy/HTTPS-Vorbereitung — **Zieldomain: `volleyball.absosol.myds.me`**
+- [x] Reverse-Proxy/HTTPS-Vorbereitung — **Zieldomain: `volleyball.<ddns-domain>.myds.me`**
       (Nutzervorgabe 2026-07-27), dokumentiert als DSM-Klickanleitung inkl.
       Let's-Encrypt-Zertifikat
 - [x] **Schritt-für-Schritt-Anleitung** `docs/DEPLOYMENT-SYNOLOGY.md` (Nutzerwunsch
@@ -97,7 +97,7 @@ Noch offen aus der 1.x-Planung (werden als 2.x weitergeführt): 1.1–1.3 (Analy
 
 ### Version 1.9 — Erster Livegang auf der Synology ✅ (2026-07-28)
 - [x] Deployment durchgeführt, Health-Check, End-to-End live verifiziert —
-      die App läuft unter **https://volleyball.absosol.myds.me** (Let's-Encrypt-Zertifikat
+      die App läuft unter **https://volleyball.<ddns-domain>.myds.me** (Let's-Encrypt-Zertifikat
       gültig bis Okt. 2026, Reverse Proxy auf 172.29.0.10:80, parallel zum tcg-Stack).
       Ablauf: Nutzer hat geclont + gebaut + DSM-Schritte geklickt; `.env`, Vorprüfungen
       und Verifikation liefen per SSH (siehe `PROGRESS.md`)

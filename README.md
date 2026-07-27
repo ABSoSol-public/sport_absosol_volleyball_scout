@@ -66,7 +66,7 @@ npm run dev
 Gleiches Muster wie beim `yugioh_database`-Projekt: **Quellcode per `git clone`
 auf die NAS, dort mit `docker-compose --env-file .env up -d --build` bauen und
 starten** — dieselbe `docker-compose.yml` wie lokal, keine Registry. Erreichbar
-ist die App über den DSM-Reverse-Proxy unter `volleyball.absosol.myds.me`
+ist die App über den DSM-Reverse-Proxy unter `volleyball.<ddns-domain>.myds.me`
 (Subdomain-Muster, feste Container-IP `172.29.0.10` als Proxy-Ziel).
 **Komplette Anleitung: `docs/DEPLOYMENT-SYNOLOGY.md`.**
 

@@ -4,12 +4,12 @@ Gleiches Muster wie beim `yugioh_database`-Projekt (TCG Collection Manager):
 **Quellcode auf die NAS, dort bauen und starten** — keine Registry, keine
 fertigen Images. Eine einzige `docker-compose.yml`, Konfiguration über `.env`.
 
-Ziel: die App läuft auf der NAS und ist unter **https://volleyball.absosol.myds.me**
+Ziel: die App läuft auf der NAS und ist unter **https://volleyball.<ddns-domain>.myds.me**
 erreichbar (Subdomain-Muster, siehe Abschnitt 7 — die tcg-App bleibt parallel
 unter ihrer eigenen Adresse erreichbar).
 
 ```
-Browser ──HTTPS:443──► Router ──8443──► DSM Reverse Proxy (volleyball.absosol.myds.me)
+Browser ──HTTPS:443──► Router ──8443──► DSM Reverse Proxy (volleyball.<ddns-domain>.myds.me)
                                              │ HTTP
                                              ▼
                                        frontend-Container (feste IP 172.29.0.10:80)
@@ -110,7 +110,7 @@ Neues am Router zu tun.
 
 1. **Zertifikat**: Systemsteuerung → Sicherheit → Zertifikat → Hinzufügen →
    „Zertifikat von Let's Encrypt holen" → Domainname:
-   `volleyball.absosol.myds.me`. (Synology-DDNS löst `*.absosol.myds.me`
+   `volleyball.<ddns-domain>.myds.me`. (Synology-DDNS löst `*.<ddns-domain>.myds.me`
    automatisch auf die NAS auf, keine extra DNS-Konfiguration nötig.)
 2. **Reverse Proxy**: Systemsteuerung → Anmeldeportal → Erweitert →
    Reverse Proxy → Erstellen:
@@ -119,14 +119,14 @@ Neues am Router zu tun.
    |---|---|
    | Beschreibung | `volleyball` |
    | Quelle: Protokoll | HTTPS |
-   | Quelle: Hostname | `volleyball.absosol.myds.me` |
+   | Quelle: Hostname | `volleyball.<ddns-domain>.myds.me` |
    | Quelle: Port | **8443** (nicht 443 — DSMs eigenes Portal schluckt sonst die Regel) |
    | Ziel: Protokoll | HTTP |
    | Ziel: Hostname | **`172.29.0.10`** (feste Container-IP, nicht `localhost`, nicht LAN-IP:8081) |
    | Ziel: Port | **80** (Container-intern, nicht `FRONTEND_PORT`) |
 
 3. **Zertifikat zuweisen**: Systemsteuerung → Sicherheit → Zertifikat →
-   Einstellungen → den neuen Eintrag `volleyball.absosol.myds.me` auf das
+   Einstellungen → den neuen Eintrag `volleyball.<ddns-domain>.myds.me` auf das
    Subdomain-Zertifikat aus Schritt 1 stellen.
 
 **Warum feste Container-IP als Ziel?** Erfahrungswerte aus dem tcg-Projekt:
@@ -138,8 +138,8 @@ damit beide Stacks parallel laufen) umgeht beides.
 
 ## 7. End-to-End-Verifikation
 
-1. `https://volleyball.absosol.myds.me` → App lädt mit gültigem Zertifikat.
-2. `https://volleyball.absosol.myds.me/health` → `{"status":"ok"}`.
+1. `https://volleyball.<ddns-domain>.myds.me` → App lädt mit gültigem Zertifikat.
+2. `https://volleyball.<ddns-domain>.myds.me/health` → `{"status":"ok"}`.
 3. Team anlegen, Match anlegen, Satz starten, ein paar Rallys scouten, Undo —
    danach in der DB gegenprüfen: `SELECT * FROM volleyball.live_events;`
 
@@ -175,5 +175,5 @@ und mit `build --no-cache` neu bauen.
 | Port-Konflikt beim Start | `FRONTEND_PORT` kollidiert (8080 = tcg) → 8081 gesetzt? |
 | DSM-Login-Seite statt App unter der Domain | Reverse-Proxy-Quelle steht auf 443 statt **8443** |
 | `502`/hängende Requests über die Domain | Reverse-Proxy-Ziel muss `172.29.0.10:80` sein (nicht localhost/LAN-IP) |
-| Zertifikatswarnung | Zertifikat dem Eintrag `volleyball.absosol.myds.me` zugewiesen (Schritt 6.3)? |
+| Zertifikatswarnung | Zertifikat dem Eintrag `volleyball.<ddns-domain>.myds.me` zugewiesen (Schritt 6.3)? |
 | `docker-compose: command not found` | Vollen Pfad nutzen: `/usr/local/bin/docker-compose`, mit `sudo` |
