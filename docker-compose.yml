@@ -1,30 +1,13 @@
-services:
-  db:
-    image: mariadb:11
-    restart: unless-stopped
-    environment:
-      MARIADB_DATABASE: ${DB_NAME:-volleyscout}
-      MARIADB_USER: ${DB_USER:-scout}
-      MARIADB_PASSWORD: ${DB_PASSWORD:-scout}
-      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root-change-me}
-    volumes:
-      - db_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-    ports:
-      - "127.0.0.1:${DB_PORT:-3306}:3306"
+# Lokaler Entwicklungs-Stack. Es gibt bewusst KEINEN eigenen DB-Container:
+# einzige Datenbank ist die MariaDB auf der Synology (Nutzerentscheidung 2026-07-28).
+# Zugangsdaten kommen aus der git-ignorierten .env (SYNOLOGY_DB_*, Vorlage .env.example).
 
+services:
   backend:
     build: ./backend
     restart: unless-stopped
     environment:
-      VOLLEYSCOUT_DATABASE_URL: mysql+pymysql://${DB_USER:-scout}:${DB_PASSWORD:-scout}@db:3306/${DB_NAME:-volleyscout}?charset=utf8mb4
-    depends_on:
-      db:
-        condition: service_healthy
+      VOLLEYSCOUT_DATABASE_URL: mysql+pymysql://${SYNOLOGY_DB_USER}:${SYNOLOGY_DB_PASSWORD}@${SYNOLOGY_DB_HOST}:${SYNOLOGY_DB_PORT}/${SYNOLOGY_DB_NAME}?charset=utf8mb4
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
 
@@ -35,6 +18,3 @@ services:
       - backend
     ports:
       - "${FRONTEND_PORT:-8080}:80"
-
-volumes:
-  db_data:

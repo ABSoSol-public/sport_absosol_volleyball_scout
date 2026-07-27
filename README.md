@@ -22,14 +22,17 @@ liegt in `backend/app/engine/scout_code.py`.
 
 ## Lokal starten (Docker)
 
+Es gibt **keinen lokalen DB-Container** — einzige Datenbank ist die MariaDB auf
+der Synology, auch für die lokale Entwicklung. Deshalb braucht die `.env` die
+`SYNOLOGY_DB_*`-Zugangsdaten (Vorlage: `.env.example`).
+
 ```bash
-cp .env.example .env   # Werte bei Bedarf anpassen
+cp .env.example .env   # SYNOLOGY_DB_* ausfüllen
 docker compose up --build
 ```
 
 - Frontend: http://localhost:8080
 - API-Doku (OpenAPI): http://localhost:8000/docs
-- MariaDB: localhost:3306 (nur auf 127.0.0.1 gebunden)
 
 Die Alembic-Migrationen laufen beim Backend-Start automatisch (`docker-entrypoint.sh`).
 

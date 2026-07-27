@@ -5,15 +5,16 @@ Stand: Version 1.0 (2026-07-27)
 ## Überblick
 
 ```
-┌────────────────┐      /api (Proxy)      ┌────────────────┐        ┌────────────┐
-│   Frontend     │ ─────────────────────► │    Backend     │ ─────► │  MariaDB   │
-│ Vue 3 + Vite   │                        │ FastAPI + SQLA │        │    11      │
-│ (nginx, :8080) │ ◄───────────────────── │    (:8000)     │ ◄───── │  (:3306)   │
-└────────────────┘         JSON           └────────────────┘        └────────────┘
+┌────────────────┐      /api (Proxy)      ┌────────────────┐        ┌──────────────────┐
+│   Frontend     │ ─────────────────────► │    Backend     │ ─────► │ MariaDB 10.11    │
+│ Vue 3 + Vite   │                        │ FastAPI + SQLA │        │ auf der Synology │
+│ (nginx, :8080) │ ◄───────────────────── │    (:8000)     │ ◄───── │ (:3307)          │
+└────────────────┘         JSON           └────────────────┘        └──────────────────┘
 ```
 
-Drei Container über Docker Compose (`docker-compose.yml`), lokal lauffähig und als
-Vorbereitung für das Synology-Deployment (Roadmap 1.8/1.9). Das Frontend wird als
+Zwei Container über Docker Compose — **die Datenbank läuft nicht im Stack**:
+einzige DB ist die MariaDB auf der Synology, sowohl lokal als auch im
+NAS-Deployment (Nutzerentscheidung 2026-07-28). Das Frontend wird als
 statisches Build von nginx ausgeliefert; nginx proxied `/api` und `/health` an das
 Backend, dadurch braucht der Browser nur einen Origin (kein CORS im Produktivbetrieb;
 für den Vite-Dev-Server übernimmt dessen Proxy dieselbe Rolle).
@@ -40,8 +41,8 @@ frontend/
     views/             TeamsView, MatchesView, LiveScoutView
     styles.css         globales Styling (kein CSS-Framework)
   Dockerfile (Node-Build-Stage → nginx), nginx.conf, vite.config.js
-docker-compose.yml            lokaler Stack (baut selbst, eigener MariaDB-Container)
-docker-compose.synology.yml   NAS-Stack (GHCR-Images, Synology-MariaDB)
+docker-compose.yml            lokaler Stack (baut selbst; DB = Synology-MariaDB)
+docker-compose.synology.yml   NAS-Stack (fertige GHCR-Images; DB = Synology-MariaDB)
 .github/workflows/            CI: Image-Build & Push nach GHCR (amd64+arm64)
 .env(.example)
 docs/                  diese Doku + ROADMAP.md + DVW-FORMAT.md + DEPLOYMENT-SYNOLOGY.md
@@ -121,9 +122,9 @@ Roadmap; vollständige Referenz in der DV4-Tiefenrecherche
 | `VOLLEYSCOUT_CORS_ORIGINS` | `["http://localhost:5173", "http://localhost:8080"]` | Dev-CORS |
 | `VOLLEYSCOUT_API_PREFIX`   | `/api`                                       | Router-Präfix             |
 
-Compose setzt `VOLLEYSCOUT_DATABASE_URL` aus den `DB_*`-Variablen der `.env`
-(siehe `.env.example`; die echte `.env` ist git-ignoriert und enthält zusätzlich
-die Synology-Zugangsdaten für das Deployment). Weitere `.env`-Abschnitte:
+Beide Compose-Files setzen `VOLLEYSCOUT_DATABASE_URL` aus den
+`SYNOLOGY_DB_*`-Variablen der `.env` (git-ignoriert; Vorlage `.env.example`).
+Weitere `.env`-Abschnitte:
 `SYNOLOGY_HOST`/`PUBLIC_DOMAIN` (Zieldomain `volleyball.absosol.myds.me` für den
 Reverse Proxy, Roadmap 1.8), `SYNOLOGY_DB_*` (MariaDB auf der NAS — Schema dort
 bereits eingespielt, siehe `docs/DATENBANK.md`) und `SYNOLOGY_SHARE_*`
