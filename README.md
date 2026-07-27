@@ -60,6 +60,10 @@ npm run dev
 
 ## Roadmap & Doku
 
+- Architektur (Komponenten, Event-Sourcing, Engine, Konfiguration): `docs/ARCHITEKTUR.md`
+- API-Referenz (Endpunkte, Beispiele, Fehlersemantik): `docs/API.md` —
+  interaktiv unter http://localhost:8000/docs
+- Datenbank (Schema, Event-Payloads, Migrationen, Betrieb): `docs/DATENBANK.md`
 - Versionsplan: `docs/ROADMAP.md`
 - DVW-Dateiformat: `docs/DVW-FORMAT.md`
 - Vollständige DataVolley-4-Referenz (Scout-Code, Formeln): Tiefenrecherche im
