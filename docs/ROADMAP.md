@@ -79,9 +79,16 @@
 
 ### Version 1.8 — Synology-Deployment-Vorbereitung
 - [ ] Docker-Compose für Synology (Volumes, Env-Vars, MariaDB-Anbindung — eigenständiges
-      NAS-Paket vs. Container ist hier noch zu entscheiden)
+      NAS-Paket vs. Container ist hier noch zu entscheiden).
+      Teilweise vorweggenommen (2026-07-27): die Synology-MariaDB ist bereits angebunden
+      und das Schema per Alembic eingespielt
 - [ ] Backup-Strategie für die Datenbank
-- [ ] Reverse-Proxy/HTTPS-Vorbereitung
+- [ ] Reverse-Proxy/HTTPS-Vorbereitung — **Zieldomain: `volleyball.absosol.myds.me`**
+      (Nutzervorgabe 2026-07-27; Subdomain der Synology-DDNS-Domain)
+- [ ] **Schritt-für-Schritt-Anleitung** für den Nutzer als `docs/DEPLOYMENT-SYNOLOGY.md`
+      (Nutzerwunsch 2026-07-27): Container auf die NAS bringen, Reverse Proxy im DSM auf
+      die Zieldomain einrichten, Zertifikat, Verifikation — analog zum Muster
+      `yugioh_database/docs/DEPLOYMENT-SYNOLOGY.md`
 
 ### Version 1.9 — Erster Livegang auf der Synology
 - [ ] Deployment durchgeführt, Health-Check, End-to-End live verifiziert
