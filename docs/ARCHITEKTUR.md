@@ -173,20 +173,27 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
 - **`is_youth_player`** (Migration `0004`): reine Kennzeichnung für Spieler mit
   besonderem Status (Höher-/Doppelspielrecht-Regelungen der Landesverbände),
   analog zu `is_libero` — keine Regelprüfung in der Engine.
-- **`frontend/src/components/VolleyballCourt.vue`**: drehbare Zonen-/Subzonen-
-  Referenz für die Live-Scouting-Zoneneingabe (Klick hängt die Zonen-Ziffer an
-  die Scout-Code-Zeile an). 9-Zonen-Raster (3×3, je 3×3 m) mit ABCD-Subzonen
-  (je 1,5×1,5 m); Zonenlayout `4,3,2 / 7,8,9 / 5,6,1` (Netzreihe/Mitte/Grundlinie)
-  und die Subzonen-Eckzuordnung (A=unten-rechts, B=oben-rechts, C=oben-links,
-  D=unten-links, im Uhrzeigersinn) sind gegen die Referenzimplementierung
-  `openvolley/datavolley` (R-Paket, Funktion `dv_xy()` in `R/plot.R`) verifiziert.
-  Die Drehung ist ein reiner CSS-Transform (`rotate(180deg)` auf das Grid, mit
-  gegenläufiger Rotation der Zellbeschriftung) — dieselbe kanonische Datenstruktur
-  ergibt dadurch exakt das (punktgespiegelte) Zonenraster der Gegenfeldseite, ohne
-  eine zweite Tabelle pflegen zu müssen.
-- Bewusst **kein** vollständiger Klickpfad-Ersatz (bleibt Roadmap 2.5): der
-  Zonen-Helfer hängt nur Zonen-Ziffer(n) an, ohne Skill/Bewertung/Spieler
-  strukturiert abzufragen.
+- **`frontend/src/components/VolleyballCourt.vue`**: Zonen-/Subzonen-Referenz für
+  die Live-Scouting-Zoneneingabe, als **vollständiges Feld** (beide Hälften +
+  Netz gleichzeitig sichtbar, damit es im Live-Betrieb schnell geht — keine
+  Dreh-Bedienung nötig). 9-Zonen-Raster (3×3, je 3×3 m) mit ABCD-Subzonen
+  (je 1,5×1,5 m) je Hälfte; Zonenlayout `4,3,2 / 7,8,9 / 5,6,1`
+  (Netzreihe/Mitte/Grundlinie) und die Subzonen-Eckzuordnung (A=unten-rechts,
+  B=oben-rechts, C=oben-links, D=unten-links, im Uhrzeigersinn) sind gegen die
+  Referenzimplementierung `openvolley/datavolley` (R-Paket, Funktion `dv_xy()`
+  in `R/plot.R`) verifiziert. Die Gastfeld-Hälfte ist **dieselbe** kanonische
+  Zellliste wie die Heimfeld-Hälfte, nur per CSS `rotate(180deg)` auf den
+  Container gedreht (Zellbeschriftung wird pro Zelle gegenläufig zurückgedreht,
+  damit der Text aufrecht bleibt) — ergibt automatisch das punktgespiegelte
+  Zonenraster der Gegenseite, ohne eine zweite Tabelle zu pflegen. Optische
+  Anlehnung an ein echtes Feld: Netzleiste zwischen den Hälften, durchgezogene
+  weiße Linie an der echten 3-Meter-/Angriffslinie (Grenze Netzreihe/Mittelreihe),
+  die übrigen Zonengrenzen nur gestrichelt (keine echten Feldlinien).
+- Klick-Reihenfolge rückt automatisch weiter: erster Klick = Startzone, zweiter
+  = Zielzone + Subzone (Richtung) — bei Bedarf oben manuell umschaltbar (z. B.
+  Block ohne Startzone). Bewusst **kein** vollständiger Klickpfad-Ersatz (bleibt
+  Roadmap 2.5): der Zonen-Helfer hängt nur Zonen-Ziffer(n) an, ohne Skill/
+  Bewertung/Spieler strukturiert abzufragen.
 - **Kaderbasierte Aufstellungs-Eingabe** (Roadmap 2.5, Nutzerfeedback nach 2.4):
   die Sätze-starten-Maske in `LiveScoutView.vue` zeigt je Team ein Zonen-Raster
   (gleiches Layout wie die Rotationsanzeige eines laufenden Satzes), jede Zone
@@ -205,10 +212,10 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   erfasst — Live-Direkteingabe (`app/engine/scout_code.py`, `ParsedAction.subzone`,
   z. B. `14AH+45B`) und DVW-Import (`app/dvw/parser.py`, `DvwScoutRow.
   attack_combination`/`target_attack`/`subzone` aus dem Advanced Code, Migration
-  `0005` auf `scout_actions`). `VolleyballCourt.vue` hat dafür einen Start-/
-  Zielzone-Modus (Radio-Buttons): Klick im Start-Modus hängt nur die Zonen-Ziffer
-  an, im Ziel-Modus Ziffer **und** Subzonen-Buchstabe — vorher war die Subzone im
-  Helfer rein dekorativ. Angriffskombinations-/Setter-Call-Codes (Advanced-Code-
+  `0005` auf `scout_actions`). `VolleyballCourt.vue` liefert dafür Zone+Subzone
+  UND ob der Klick gerade als Start- oder Zielzone gemeint war (`target`,
+  automatisch fortschreitend) — vorher war die Subzone im Helfer rein dekorativ.
+  Angriffskombinations-/Setter-Call-Codes (Advanced-Code-
   Feld 7–8, Grundlage für Zuspielverteilung-Analysen) werden beim **Import**
   miterfasst, aber bewusst **nicht** in die kompakte Live-Direkteingabe
   aufgenommen (dort mehrdeutig ohne Trennzeichen zur nachfolgenden Zone) — das

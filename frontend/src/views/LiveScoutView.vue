@@ -22,13 +22,11 @@ const lineupSelection = ref({ home: blankLineup(), away: blankLineup() });
 const actionCodes = ref("");
 const sub = ref({ side: "home", player_out: null, player_in: null });
 
-// Der Scout-Code-Grammatik folgend (Startzone, dann Zielzone, dann optional
-// Subzone NUR zur Zielzone) muss der Zonen-Helfer wissen, ob ein Klick gerade
-// die Start- oder die Zielzone (mit Richtungs-Subzone) einträgt.
-const zoneEntryMode = ref("start"); // "start" | "end"
-
+// VolleyballCourt entscheidet selbst (auto-fortschreitend), ob ein Klick gerade
+// Start- oder Zielzone meint, und liefert das per `target` mit.
 function appendZone(selection) {
-  actionCodes.value += zoneEntryMode.value === "end" ? selection.zone + selection.subzone : selection.zone;
+  actionCodes.value +=
+    selection.target === "end" ? selection.zone + selection.subzone : selection.zone;
 }
 
 const setRunning = computed(() => state.value?.set_running);
@@ -260,22 +258,15 @@ onMounted(refresh);
       </div>
 
       <details class="card">
-        <summary>Zonen-Helfer (Netz oben, drehbar für die Gegenseite)</summary>
-        <div class="form-row" style="justify-content: center">
-          <div class="field-checkbox">
-            <input id="zone-mode-start" v-model="zoneEntryMode" type="radio" value="start" />
-            <label for="zone-mode-start">Startzone</label>
-          </div>
-          <div class="field-checkbox">
-            <input id="zone-mode-end" v-model="zoneEntryMode" type="radio" value="end" />
-            <label for="zone-mode-end">Zielzone (+ Richtung)</label>
-          </div>
-        </div>
-        <VolleyballCourt @select="appendZone" />
+        <summary>Zonen-Helfer (beide Feldhälften, Netz in der Mitte)</summary>
+        <VolleyballCourt
+          :home-label="match.home_team.code"
+          :away-label="match.away_team.code"
+          @select="appendZone"
+        />
         <p class="muted" style="text-align: center">
-          Klick fügt im Modus „Startzone" nur die Zonen-Ziffer an, im Modus
-          „Zielzone" Ziffer + Subzonen-Buchstabe (A–D) — die Subzone verfeinert die
-          Zielzone als Richtungsangabe (siehe Code-Grammatik: Start → Ziel+Subzone).
+          Erster Klick = Startzone, zweiter Klick = Zielzone + Subzone (Richtung) —
+          rückt automatisch weiter, bei Bedarf oben manuell umschaltbar.
         </p>
       </details>
 
