@@ -187,6 +187,18 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
 - Bewusst **kein** vollständiger Klickpfad-Ersatz (bleibt Roadmap 2.5): der
   Zonen-Helfer hängt nur die rohe Zonen-Ziffer an, ohne Skill/Bewertung/Spieler
   strukturiert abzufragen.
+- **Kaderbasierte Aufstellungs-Eingabe** (Roadmap 2.5, Nutzerfeedback nach 2.4):
+  die Sätze-starten-Maske in `LiveScoutView.vue` zeigt je Team ein Zonen-Raster
+  (gleiches Layout wie die Rotationsanzeige eines laufenden Satzes), jede Zone
+  ist ein `<select>` mit dem Kader des Teams statt einer Freitext-Nummernliste;
+  Duplikat-Zuordnung wird clientseitig als Hinweis angezeigt (die Engine
+  validiert serverseitig ohnehin). Ebenso die Wechsel-Auswahl: „Raus" listet nur
+  die laut `current_set.lineups` aktuell auf dem Feld stehenden Spieler, „Rein"
+  nur den Rest des Kaders. Liberos sind mit „(L)" markiert. `MatchEngine.state()`
+  liefert seit dieser Version je `set_scores`-Eintrag zusätzlich `lineups`
+  (Endaufstellung des Satzes) — das Frontend schlägt daraus die Aufstellung für
+  den nächsten Satz vor, auch nach einem Seiten-Reload (analog zum DV4-Verhalten
+  „ab Satz 2 wird das vorherige LineUp vorgeschlagen").
 
 ## Konfiguration
 

@@ -230,6 +230,19 @@ nav.topnav a:hover {
   font-size: 0.7rem;
 }
 
+.court-wide {
+  max-width: 420px;
+}
+
+.court-wide .zone {
+  padding: 0.4rem;
+}
+
+.court-wide .zone select {
+  font-size: 0.85rem;
+  padding: 0.3rem;
+}
+
 details.card summary {
   cursor: pointer;
   font-weight: 600;

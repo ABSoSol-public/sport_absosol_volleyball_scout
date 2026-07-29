@@ -219,7 +219,8 @@ Jede Eingabe wird als Event persistiert (Event-Sourcing, siehe
   "sets_won": { "home": 1, "away": 0 },
   "match_finished": false,
   "set_running": true,
-  "set_scores": [ { "number": 1, "home": 25, "away": 21 } ],
+  "set_scores": [ { "number": 1, "home": 25, "away": 21,
+    "lineups": { "home": [7,12,4,9,2,15], "away": [8,11,6,1,10,3] } } ],
   "current_set": {
     "number": 2,
     "points": { "home": 3, "away": 4 },
@@ -234,6 +235,9 @@ Jede Eingabe wird als Event persistiert (Event-Sourcing, siehe
 
 `lineups` ist je Team die Liste `[Zone1, Zone2, …, Zone6]` (Zone 1 = Aufschlag-
 position hinten rechts). `current_set` ist `null`, wenn gerade kein Satz läuft.
+`set_scores[].lineups` ist die **Endaufstellung** des jeweiligen Satzes (inkl.
+während des Satzes gemachter Wechsel) — das Frontend schlägt daraus die
+Aufstellung für den nächsten Satz vor (analog zu DataVolley, siehe unten).
 
 ### `GET …/live/state`
 Nur lesen, z. B. für Anzeige-Clients.

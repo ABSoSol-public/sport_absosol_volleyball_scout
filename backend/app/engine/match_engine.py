@@ -188,7 +188,12 @@ class MatchEngine:
             "match_finished": self.match_finished,
             "set_running": set_running,
             "set_scores": [
-                {"number": s.number, "home": s.points["home"], "away": s.points["away"]}
+                {
+                    "number": s.number,
+                    "home": s.points["home"],
+                    "away": s.points["away"],
+                    "lineups": {side: list(s.lineups[side]) for side in SIDES},
+                }
                 for s in self.set_history
             ],
             "current_set": None

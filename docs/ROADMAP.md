@@ -123,8 +123,13 @@ Match-Browser (2.3) und Kaderverwaltung/Zonen-Helfer (2.4). Nächste geplante Ve
 ### 2.5 — Klickpfad-Eingabe (Rest von 1.5, Live-Strang)
 - [ ] Klickpfad Team → Spieler → Skill → Bewertung als Alternative zur Direkteingabe,
       inkl. UI-Sperrmuster (Bedienelemente erst nach gültiger Vorauswahl freigeben)
-- [ ] Kaderanbindung: Aufstellungs-Eingabe gegen den hinterlegten Kader validieren
-      (inkl. Libero-Kennzeichnung)
+- [x] Kaderanbindung: Aufstellungs-Eingabe gegen den hinterlegten Kader validieren
+      (inkl. Libero-Kennzeichnung) ✅ (2026-07-30, Nutzerfeedback) — Aufstellung wird
+      jetzt per Zonen-Raster mit Kader-Dropdowns gewählt statt Freitext-Nummernliste
+      (`LiveScoutView.vue`), Wechsel-Dropdowns ebenfalls kaderbasiert (Feld-/Bank-
+      Spieler getrennt), Libero mit „(L)" markiert, vorherige Endaufstellung wird für
+      den nächsten Satz vorgeschlagen (`set_scores[].lineups` im Live-Zustand, DV4-
+      Vorbild: „ab Satz 2 wird das vorherige LineUp vorgeschlagen")
 
 ### 2.6 — Zeitstempel & DVW-Export (ehem. 1.6)
 - [ ] Zeitstempel je Aktion (Wanduhrzeit + Zeitcode seit Satzbeginn) für Import und
