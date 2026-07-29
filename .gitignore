@@ -131,6 +131,9 @@ dmypy.json
 # lokale Session-/Fortschrittsnotizen (nicht fürs öffentliche Repo)
 PROGRESS.md
 
+# interne Roadmap-Kommentare (Nutzerentscheidung 2026-07-30: nicht mehr öffentlich)
+docs/ROADMAP.md
+
 # Auswertungen fremder Studienarbeiten (personenbezogene Daten der Autoren/Betreuer,
 # urheberrechtlich fremder Inhalt) — nicht fürs öffentliche Repo
 docs/research/
