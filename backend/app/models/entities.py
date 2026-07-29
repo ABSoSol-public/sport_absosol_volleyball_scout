@@ -51,6 +51,9 @@ class Player(Base):
     first_name: Mapped[str] = mapped_column(String(80), default="")
     position: Mapped[str] = mapped_column(String(20), default="")
     is_libero: Mapped[bool] = mapped_column(default=False)
+    # Sonderstellung Jugendspieler (Höherspielrecht/Doppelspielrecht-Regelungen der
+    # Landesverbände) — reine Kennzeichnung, keine Regelprüfung in der Engine.
+    is_youth_player: Mapped[bool] = mapped_column(default=False)
 
     team: Mapped[Team] = relationship(back_populates="players")
 

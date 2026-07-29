@@ -59,3 +59,13 @@ def test_viewer_is_read_only(viewer_client: TestClient) -> None:
     response = viewer_client.post("/api/teams", json={"code": "X", "name": "Verboten"})
     assert response.status_code == 403
     assert viewer_client.get("/api/auth/me").json()["role"] == "viewer"
+
+
+def test_viewer_cannot_edit_teams_or_players(viewer_client: TestClient) -> None:
+    assert viewer_client.patch("/api/teams/1", json={"code": "X", "name": "Verboten"}).status_code == 403
+    assert (
+        viewer_client.patch(
+            "/api/teams/1/players/1", json={"number": 1, "last_name": "Verboten"}
+        ).status_code
+        == 403
+    )

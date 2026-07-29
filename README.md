@@ -3,7 +3,10 @@
 Eigene Scouting- und Analyse-Software für Volleyball: **Live-Scouting** mit vollständiger
 Regelabbildung (Punkte, Side-Out, Rotation, Sätze, Wechsel, Auszeiten, Undo) und
 **Import bestehender DataVolley-Dateien** (`.dvw`, Upload auf der Matches-Seite) samt
-**Statistik-Auswertung** (Spieler-/Team-Kennzahlen, Rotationsanalyse, `GET /matches/{id}/statistics`).
+**Statistik-Auswertung** (Spieler-/Team-Kennzahlen, Rotationsanalyse) und einem
+**Match-Browser** (Satzverlauf + Statistik-Panel für importierte Spiele). Kader lassen
+sich vollständig nachbearbeiten (Team/Spieler, Position als Enum, Jugendspieler-
+Kennzeichnung); im Live-Scouting hilft ein drehbarer Zonen-Helfer bei der Zoneneingabe.
 Login-pflichtig mit Rollen (admin/viewer).
 
 ## Architektur

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { api } from "../api";
+import VolleyballCourt from "../components/VolleyballCourt.vue";
 
 const props = defineProps({ id: { type: String, required: true } });
 
@@ -11,6 +12,10 @@ const error = ref("");
 const lineupInput = ref({ serving: "home", home: "", away: "" });
 const actionCodes = ref("");
 const sub = ref({ side: "home", player_out: null, player_in: null });
+
+function appendZone(selection) {
+  actionCodes.value += selection.zone;
+}
 
 const setRunning = computed(() => state.value?.set_running);
 const current = computed(() => state.value?.current_set);
@@ -113,25 +118,35 @@ onMounted(refresh);
     <div v-if="!setRunning && !state.match_finished" class="card">
       <h2>Satz {{ state.set_scores.length + 1 }} starten</h2>
       <div class="form-row">
-        <label>
-          Aufschlag:
-          <select v-model="lineupInput.serving">
+        <div class="field">
+          <label for="serving-select">Aufschlag</label>
+          <select id="serving-select" v-model="lineupInput.serving">
             <option value="home">{{ match.home_team.name }}</option>
             <option value="away">{{ match.away_team.name }}</option>
           </select>
-        </label>
+        </div>
       </div>
       <div class="form-row">
-        <label style="flex: 1">
-          Aufstellung Heim (Zonen 1–6):
-          <input v-model="lineupInput.home" placeholder="z. B. 7 12 4 9 2 15" style="width: 100%" />
-        </label>
+        <div class="field" style="flex: 1">
+          <label for="lineup-home">Aufstellung Heim (Zonen 1–6)</label>
+          <input
+            id="lineup-home"
+            v-model="lineupInput.home"
+            placeholder="z. B. 7 12 4 9 2 15"
+            style="width: 100%"
+          />
+        </div>
       </div>
       <div class="form-row">
-        <label style="flex: 1">
-          Aufstellung Gast (Zonen 1–6):
-          <input v-model="lineupInput.away" placeholder="z. B. 3 8 11 6 1 10" style="width: 100%" />
-        </label>
+        <div class="field" style="flex: 1">
+          <label for="lineup-away">Aufstellung Gast (Zonen 1–6)</label>
+          <input
+            id="lineup-away"
+            v-model="lineupInput.away"
+            placeholder="z. B. 3 8 11 6 1 10"
+            style="width: 100%"
+          />
+        </div>
       </div>
       <button @click="startSet">Satz starten</button>
     </div>
@@ -166,13 +181,27 @@ onMounted(refresh);
       </div>
 
       <div class="form-row" style="margin-top: 1rem">
-        <input
-          v-model="actionCodes"
-          placeholder="Scout-Codes (optional), z. B. 5SQ- a11RQ+ a14AH#"
-          style="flex: 1"
-          @keyup.enter="null"
-        />
+        <div class="field" style="flex: 1">
+          <label for="action-codes">Scout-Codes (optional)</label>
+          <input
+            id="action-codes"
+            v-model="actionCodes"
+            placeholder="z. B. 5SQ- a11RQ+ a14AH#"
+            style="width: 100%"
+            @keyup.enter="null"
+          />
+        </div>
       </div>
+
+      <details class="card">
+        <summary>Zonen-Helfer (Netz oben, drehbar für die Gegenseite)</summary>
+        <VolleyballCourt @select="appendZone" />
+        <p class="muted" style="text-align: center">
+          Klick fügt die Zonen-Ziffer ans Ende der Scout-Code-Zeile an; die Subzone (A–D)
+          dient nur zur Orientierung.
+        </p>
+      </details>
+
       <div class="actions-bar">
         <button @click="rally('home')">+ Punkt {{ match.home_team.code }}</button>
         <button @click="rally('away')">+ Punkt {{ match.away_team.code }}</button>
@@ -182,12 +211,21 @@ onMounted(refresh);
       </div>
 
       <div class="form-row" style="margin-top: 1rem">
-        <select v-model="sub.side">
-          <option value="home">{{ match.home_team.code }}</option>
-          <option value="away">{{ match.away_team.code }}</option>
-        </select>
-        <input v-model.number="sub.player_out" type="number" placeholder="raus" style="width: 6rem" />
-        <input v-model.number="sub.player_in" type="number" placeholder="rein" style="width: 6rem" />
+        <div class="field">
+          <label for="sub-side">Team</label>
+          <select id="sub-side" v-model="sub.side">
+            <option value="home">{{ match.home_team.code }}</option>
+            <option value="away">{{ match.away_team.code }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sub-out">Raus</label>
+          <input id="sub-out" v-model.number="sub.player_out" type="number" style="width: 6rem" />
+        </div>
+        <div class="field">
+          <label for="sub-in">Rein</label>
+          <input id="sub-in" v-model.number="sub.player_in" type="number" style="width: 6rem" />
+        </div>
         <button class="secondary" @click="substitute">Wechsel</button>
       </div>
     </div>

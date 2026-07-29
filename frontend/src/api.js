@@ -30,13 +30,22 @@ export const api = {
 
   listTeams: () => request("/teams"),
   createTeam: (data) => request("/teams", { method: "POST", body: JSON.stringify(data) }),
+  updateTeam: (id, data) =>
+    request(`/teams/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   getTeam: (id) => request(`/teams/${id}`),
   addPlayer: (teamId, data) =>
     request(`/teams/${teamId}/players`, { method: "POST", body: JSON.stringify(data) }),
+  updatePlayer: (teamId, playerId, data) =>
+    request(`/teams/${teamId}/players/${playerId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 
   listMatches: () => request("/matches"),
   createMatch: (data) => request("/matches", { method: "POST", body: JSON.stringify(data) }),
   getMatch: (id) => request(`/matches/${id}`),
+  getMatchSets: (id) => request(`/matches/${id}/sets`),
+  getMatchStatistics: (id) => request(`/matches/${id}/statistics`),
 
   importDvw: async (file) => {
     const body = new FormData();

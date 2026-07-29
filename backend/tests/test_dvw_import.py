@@ -86,6 +86,11 @@ def test_import_endpoint(client: TestClient) -> None:
     assert match["home_team"]["name"] == "Team Alpha"
     assert match["status"] == "finished"
 
+    sets = client.get(f"/api/matches/{body['match_id']}/sets").json()
+    assert sets == [
+        {"number": 1, "home_points": 25, "away_points": 20, "finished": True, "duration_minutes": 24}
+    ]
+
     # Re-Import: Teams/Spieler werden wiederverwendet, neues Match entsteht
     again = client.post(
         "/api/imports/dvw",

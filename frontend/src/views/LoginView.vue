@@ -25,23 +25,29 @@ async function submit() {
     <p v-if="error" class="error">{{ error }}</p>
     <form @submit.prevent="submit">
       <div class="form-row">
-        <input
-          v-model="username"
-          placeholder="Benutzername"
-          autocomplete="username"
-          required
-          style="flex: 1"
-        />
+        <div class="field" style="flex: 1">
+          <label for="login-username">Benutzername</label>
+          <input
+            id="login-username"
+            v-model="username"
+            autocomplete="username"
+            required
+            style="width: 100%"
+          />
+        </div>
       </div>
       <div class="form-row">
-        <input
-          v-model="password"
-          type="password"
-          placeholder="Passwort"
-          autocomplete="current-password"
-          required
-          style="flex: 1"
-        />
+        <div class="field" style="flex: 1">
+          <label for="login-password">Passwort</label>
+          <input
+            id="login-password"
+            v-model="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            style="width: 100%"
+          />
+        </div>
       </div>
       <button type="submit">Anmelden</button>
     </form>

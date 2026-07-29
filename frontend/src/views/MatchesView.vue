@@ -57,24 +57,36 @@ onMounted(load);
   <div class="card">
     <h2>Neues Match</h2>
     <form class="form-row" @submit.prevent="createMatch">
-      <input v-model="newMatch.match_date" type="date" required />
-      <input v-model="newMatch.competition" placeholder="Wettbewerb (optional)" />
-      <select v-model.number="newMatch.home_team_id" required>
-        <option :value="null" disabled>Heimteam …</option>
-        <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
-      </select>
-      <select v-model.number="newMatch.away_team_id" required>
-        <option :value="null" disabled>Gastteam …</option>
-        <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
-      </select>
+      <div class="field">
+        <label for="new-match-date">Datum</label>
+        <input id="new-match-date" v-model="newMatch.match_date" type="date" required />
+      </div>
+      <div class="field">
+        <label for="new-match-competition">Wettbewerb</label>
+        <input id="new-match-competition" v-model="newMatch.competition" placeholder="optional" />
+      </div>
+      <div class="field">
+        <label for="new-match-home">Heimteam</label>
+        <select id="new-match-home" v-model.number="newMatch.home_team_id" required>
+          <option :value="null" disabled>Heimteam …</option>
+          <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="new-match-away">Gastteam</label>
+        <select id="new-match-away" v-model.number="newMatch.away_team_id" required>
+          <option :value="null" disabled>Gastteam …</option>
+          <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
+        </select>
+      </div>
       <button type="submit">Anlegen</button>
     </form>
     <p v-if="teams.length < 2">Zuerst mindestens zwei Teams unter „Teams“ anlegen.</p>
     <div class="form-row">
-      <label>
-        DataVolley-Datei importieren (.dvw):
-        <input type="file" accept=".dvw" @change="importDvw" />
-      </label>
+      <div class="field">
+        <label for="dvw-file">DataVolley-Datei importieren (.dvw)</label>
+        <input id="dvw-file" type="file" accept=".dvw" @change="importDvw" />
+      </div>
       <span v-if="importInfo">{{ importInfo }}</span>
     </div>
   </div>
@@ -92,8 +104,11 @@ onMounted(load);
           <td>{{ match.away_team.name }}</td>
           <td>{{ match.status }}</td>
           <td>
-            <RouterLink :to="`/matches/${match.id}/live`">
-              <button>{{ match.status === "finished" ? "Ansehen" : "Live-Scouting" }}</button>
+            <RouterLink v-if="match.status === 'finished'" :to="`/matches/${match.id}`">
+              <button>Ansehen</button>
+            </RouterLink>
+            <RouterLink v-else :to="`/matches/${match.id}/live`">
+              <button>Live-Scouting</button>
             </RouterLink>
           </td>
         </tr>

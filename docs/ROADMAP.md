@@ -1,8 +1,9 @@
 # Roadmap
 
-**Aktuelle Version: 2.2** — die App ist live auf der Synology (seit 2026-07-28, Domain siehe
-lokale `.env`), mit Login-Pflicht (2.0), DVW-Import (2.1) und Statistik-Auswertung (2.2).
-Nächste geplante Version: **2.3 Match-Browser**.
+**Aktuelle Version: 2.4** — die App ist live auf der Synology (seit 2026-07-28, Domain siehe
+lokale `.env`), mit Login-Pflicht (2.0), DVW-Import (2.1), Statistik-Auswertung (2.2),
+Match-Browser (2.3) und Kaderverwaltung/Zonen-Helfer (2.4). Nächste geplante Version:
+**2.5 Klickpfad-Eingabe**.
 
 ## Versionsschema
 
@@ -78,29 +79,65 @@ Nächste geplante Version: **2.3 Match-Browser**.
       Setter-Positionen statt vereinfachtem Rotationsindex)
 - [x] REST-Endpunkt `GET /api/matches/{id}/statistics` (Spieler/Team/Rotation home+away)
 
+### 2.3 — Match-Browser (ehem. 1.3, Analyse-Strang) ✅ (2026-07-29)
+- [x] Match-Detailansicht importierter Spiele (Teams, Sätze, Ergebnis, Statistik-Panel) —
+      `frontend/src/views/MatchDetailView.vue`, Route `/matches/:id`; neuer Endpunkt
+      `GET /api/matches/{id}/sets`; Fallback-Hinweis mit Link zur Live-Ansicht, falls ein
+      `finished`-Match noch keine Analyse-Daten hat (live gescoutet, vor Roadmap 2.7)
+- [x] Nebenbei behobenen Bug in der Matches-Liste gefixt: „Ansehen" bei importierten
+      Matches landete bisher fälschlich in der Live-Scouting-Ansicht (keine `live_events`
+      vorhanden → irreführende „Satz starten"-Maske statt Ergebnis)
+- [x] Frontend-Politur (Nutzerwunsch, nicht nur Match-Browser): Hover-/Transition-Feedback
+      auf Buttons/Tabellenzeilen/Karten, Badges (Status, Effizienz), Meter-Balken für
+      Quoten, Empty-States — `frontend/src/styles.css`
+
+### 2.4 — Kaderverwaltung & Zonen-Helfer (Nutzerfeedback nach 2.3) ✅ (2026-07-30)
+- [x] Team/Spieler-Nachbearbeitung: `PATCH /api/teams/{id}` und
+      `PATCH /api/teams/{id}/players/{id}` (bisher nur Anlage möglich, keine Korrektur) —
+      inline Bearbeiten-Modus in `TeamsView.vue`
+- [x] Position vom Freitext- zum Enum-Feld (`Zuspieler`/`Außenangreifer`/
+      `Diagonalangreifer`/`Mittelblocker`/`Libero`, Standard-5-Positionen-System,
+      webrecherchiert) — nur clientseitig als Dropdown erzwungen, bestehende
+      Freitext-Werte in der DB bleiben unangetastet
+- [x] Neue Kennzeichnung „Jugendspieler" (`is_youth_player`, Migration `0004`) — reiner
+      Marker analog `is_libero`, keine Regelprüfung (echte Höher-/Doppelspielrecht-Logik
+      der Landesverbände wäre eigenes Thema, hier bewusst nicht abgebildet)
+- [x] Formular-Politur: Labels sauber über den Feldern (`.field`-Klasse) statt nur
+      Placeholder-Text, in TeamsView/MatchesView/LiveScoutView/LoginView
+- [x] Neue Komponente `frontend/src/components/VolleyballCourt.vue`: drehbares
+      9-Zonen-Raster (3×3, je 3×3 m) mit ABCD-Subzonen (je 1,5×1,5 m) für die
+      Live-Scouting-Zoneneingabe — Zonenlayout UND die 180°-Beziehung der
+      Gegenfeld-Zonen gegen `openvolley/datavolley` (R-Referenzimplementierung,
+      `R/plot.R`/`dv_xy()`) verifiziert, deckt sich mit der bereits in `PROGRESS.md`
+      dokumentierten Kurzreferenz. **Abweichung gefunden**: die Ecke der Subzone A
+      wurde ursprünglich als „unten links" beschrieben, die verifizierte Quelle hat
+      A tatsächlich „unten rechts" (im Uhrzeigersinn ab A: A→B→C→D = unten-rechts →
+      oben-rechts → oben-links → unten-links) — umgesetzt nach der verifizierten
+      Quelle, Konstante zum Umdrehen liegt zentral in der Komponente
+- [x] Zonen-Helfer bewusst nur als Referenz-/Klick-Werkzeug (hängt die Zonen-Ziffer an
+      die bestehende Scout-Code-Zeile an), **kein** vollständiger Klickpfad-Ersatz —
+      das bleibt Umfang von 2.5
+
 ## Geplante Versionen
 
-### 2.3 — Match-Browser (ehem. 1.3, Analyse-Strang)
-- [ ] Match-Detailansicht importierter Spiele (Teams, Sätze, Ergebnis, Statistik-Panel)
-
-### 2.4 — Klickpfad-Eingabe (Rest von 1.5, Live-Strang)
+### 2.5 — Klickpfad-Eingabe (Rest von 1.5, Live-Strang)
 - [ ] Klickpfad Team → Spieler → Skill → Bewertung als Alternative zur Direkteingabe,
       inkl. UI-Sperrmuster (Bedienelemente erst nach gültiger Vorauswahl freigeben)
 - [ ] Kaderanbindung: Aufstellungs-Eingabe gegen den hinterlegten Kader validieren
       (inkl. Libero-Kennzeichnung)
 
-### 2.5 — Zeitstempel & DVW-Export (ehem. 1.6)
+### 2.6 — Zeitstempel & DVW-Export (ehem. 1.6)
 - [ ] Zeitstempel je Aktion (Wanduhrzeit + Zeitcode seit Satzbeginn) für Import und
       Live-Scouting einheitlich — Grundlage für spätere Video-Synchronisation
       (die `live_events` tragen bereits `created_at`, das DVW-Format Feld 7/12)
 - [ ] Export im DVW-kompatiblen Stil (Anschlussfähigkeit an DataVolley-Tools)
 
-### 2.6 — Zusammenführung Analyse- & Live-Strang (ehem. 1.7)
+### 2.7 — Zusammenführung Analyse- & Live-Strang (ehem. 1.7)
 - [ ] Live-gescoutete Spiele erscheinen in derselben Match-Übersicht/Statistik wie
       importierte (Ableitung `live_events` → `rallies`/`scout_actions`)
 - [ ] Protokoll unbekannter/nicht erkannter Codes beim Import
 
-### 2.7 — Betrieb & Import-Ausbau
+### 2.8 — Betrieb & Import-Ausbau
 - [ ] Backup-Strategie für die Datenbank (Rest aus 1.8 — jetzt relevant, da echte
       Daten entstehen; Vorbild: `backup-db.sh` im yugioh_database-Projekt)
 - [ ] DVW-Batch-Import über einen ganzen Ordner (Rest aus 2.1; Testquelle lokal:

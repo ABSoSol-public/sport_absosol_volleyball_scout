@@ -2,12 +2,22 @@
 import { onMounted, ref } from "vue";
 import { api } from "../api";
 
+const POSITIONS = ["Zuspieler", "Außenangreifer", "Diagonalangreifer", "Mittelblocker", "Libero"];
+
 const teams = ref([]);
 const selectedTeam = ref(null);
 const error = ref("");
 
 const newTeam = ref({ code: "", name: "" });
-const newPlayer = ref({ number: null, last_name: "", first_name: "", position: "", is_libero: false });
+const editingTeamId = ref(null);
+const teamEdit = ref({ code: "", name: "" });
+
+function blankPlayer() {
+  return { number: null, last_name: "", first_name: "", position: "", is_libero: false, is_youth_player: false };
+}
+const newPlayer = ref(blankPlayer());
+const editingPlayerId = ref(null);
+const playerEdit = ref(blankPlayer());
 
 async function loadTeams() {
   teams.value = await api.listTeams();
@@ -28,11 +38,61 @@ async function createTeam() {
   }
 }
 
+function startEditTeam(team) {
+  editingTeamId.value = team.id;
+  teamEdit.value = { code: team.code, name: team.name };
+}
+
+function cancelEditTeam() {
+  editingTeamId.value = null;
+}
+
+async function saveTeam(team) {
+  error.value = "";
+  try {
+    await api.updateTeam(team.id, teamEdit.value);
+    editingTeamId.value = null;
+    await loadTeams();
+    if (selectedTeam.value?.id === team.id) await selectTeam(team);
+  } catch (e) {
+    error.value = e.message;
+  }
+}
+
 async function addPlayer() {
   error.value = "";
   try {
-    await api.addPlayer(selectedTeam.value.id, newPlayer.value);
-    newPlayer.value = { number: null, last_name: "", first_name: "", position: "", is_libero: false };
+    const data = { ...newPlayer.value, position: newPlayer.value.position || null };
+    await api.addPlayer(selectedTeam.value.id, data);
+    newPlayer.value = blankPlayer();
+    await selectTeam(selectedTeam.value);
+  } catch (e) {
+    error.value = e.message;
+  }
+}
+
+function startEditPlayer(player) {
+  editingPlayerId.value = player.id;
+  playerEdit.value = {
+    number: player.number,
+    last_name: player.last_name,
+    first_name: player.first_name,
+    position: player.position,
+    is_libero: player.is_libero,
+    is_youth_player: player.is_youth_player,
+  };
+}
+
+function cancelEditPlayer() {
+  editingPlayerId.value = null;
+}
+
+async function savePlayer(player) {
+  error.value = "";
+  try {
+    const data = { ...playerEdit.value, position: playerEdit.value.position || null };
+    await api.updatePlayer(selectedTeam.value.id, player.id, data);
+    editingPlayerId.value = null;
     await selectTeam(selectedTeam.value);
   } catch (e) {
     error.value = e.message;
@@ -49,8 +109,14 @@ onMounted(loadTeams);
   <div class="card">
     <h2>Neues Team</h2>
     <form class="form-row" @submit.prevent="createTeam">
-      <input v-model="newTeam.code" placeholder="Code (z. B. TSV)" maxlength="8" required />
-      <input v-model="newTeam.name" placeholder="Teamname" required />
+      <div class="field">
+        <label for="new-team-code">Code</label>
+        <input id="new-team-code" v-model="newTeam.code" placeholder="z. B. TSV" maxlength="8" required />
+      </div>
+      <div class="field">
+        <label for="new-team-name">Teamname</label>
+        <input id="new-team-name" v-model="newTeam.name" placeholder="Vereinsname" required />
+      </div>
       <button type="submit">Anlegen</button>
     </form>
   </div>
@@ -62,9 +128,22 @@ onMounted(loadTeams);
       </thead>
       <tbody>
         <tr v-for="team in teams" :key="team.id">
-          <td>{{ team.code }}</td>
-          <td>{{ team.name }}</td>
-          <td><button class="secondary" @click="selectTeam(team)">Kader</button></td>
+          <template v-if="editingTeamId === team.id">
+            <td><input v-model="teamEdit.code" maxlength="8" style="width: 6rem" /></td>
+            <td><input v-model="teamEdit.name" style="width: 100%" /></td>
+            <td>
+              <button @click="saveTeam(team)">Speichern</button>
+              <button class="secondary" @click="cancelEditTeam">Abbrechen</button>
+            </td>
+          </template>
+          <template v-else>
+            <td>{{ team.code }}</td>
+            <td>{{ team.name }}</td>
+            <td>
+              <button class="secondary" @click="selectTeam(team)">Kader</button>
+              <button class="secondary" @click="startEditTeam(team)">Bearbeiten</button>
+            </td>
+          </template>
         </tr>
       </tbody>
     </table>
@@ -74,23 +153,80 @@ onMounted(loadTeams);
     <h2>Kader: {{ selectedTeam.name }}</h2>
     <table>
       <thead>
-        <tr><th>Nr.</th><th>Name</th><th>Position</th><th>Libero</th></tr>
+        <tr>
+          <th>Nr.</th><th>Name</th><th>Position</th><th>Libero</th><th>Jugend</th><th></th>
+        </tr>
       </thead>
       <tbody>
         <tr v-for="player in selectedTeam.players" :key="player.id">
-          <td>{{ player.number }}</td>
-          <td>{{ player.last_name }} {{ player.first_name }}</td>
-          <td>{{ player.position }}</td>
-          <td>{{ player.is_libero ? "L" : "" }}</td>
+          <template v-if="editingPlayerId === player.id">
+            <td><input v-model.number="playerEdit.number" type="number" min="0" max="99" style="width: 4rem" /></td>
+            <td>
+              <input v-model="playerEdit.last_name" placeholder="Nachname" style="width: 7rem" />
+              <input v-model="playerEdit.first_name" placeholder="Vorname" style="width: 7rem" />
+            </td>
+            <td>
+              <select v-model="playerEdit.position">
+                <option value="">–</option>
+                <option v-for="p in POSITIONS" :key="p" :value="p">{{ p }}</option>
+              </select>
+            </td>
+            <td><input v-model="playerEdit.is_libero" type="checkbox" /></td>
+            <td><input v-model="playerEdit.is_youth_player" type="checkbox" /></td>
+            <td>
+              <button @click="savePlayer(player)">Speichern</button>
+              <button class="secondary" @click="cancelEditPlayer">Abbrechen</button>
+            </td>
+          </template>
+          <template v-else>
+            <td>{{ player.number }}</td>
+            <td>{{ player.last_name }} {{ player.first_name }}</td>
+            <td>{{ player.position }}</td>
+            <td>{{ player.is_libero ? "L" : "" }}</td>
+            <td>{{ player.is_youth_player ? "J" : "" }}</td>
+            <td><button class="secondary" @click="startEditPlayer(player)">Bearbeiten</button></td>
+          </template>
         </tr>
       </tbody>
     </table>
+
+    <h3>Spieler hinzufügen</h3>
     <form class="form-row" @submit.prevent="addPlayer">
-      <input v-model.number="newPlayer.number" type="number" min="0" max="99" placeholder="Nr." required style="width: 5rem" />
-      <input v-model="newPlayer.last_name" placeholder="Nachname" required />
-      <input v-model="newPlayer.first_name" placeholder="Vorname" />
-      <input v-model="newPlayer.position" placeholder="Position" />
-      <label><input v-model="newPlayer.is_libero" type="checkbox" /> Libero</label>
+      <div class="field">
+        <label for="new-player-number">Nr.</label>
+        <input
+          id="new-player-number"
+          v-model.number="newPlayer.number"
+          type="number"
+          min="0"
+          max="99"
+          required
+          style="width: 5rem"
+        />
+      </div>
+      <div class="field">
+        <label for="new-player-last-name">Nachname</label>
+        <input id="new-player-last-name" v-model="newPlayer.last_name" required />
+      </div>
+      <div class="field">
+        <label for="new-player-first-name">Vorname</label>
+        <input id="new-player-first-name" v-model="newPlayer.first_name" />
+      </div>
+      <div class="field">
+        <label for="new-player-position">Position</label>
+        <select id="new-player-position" v-model="newPlayer.position">
+          <option value="">– keine Angabe –</option>
+          <option v-for="p in POSITIONS" :key="p" :value="p">{{ p }}</option>
+        </select>
+      </div>
+      <div class="field-checkbox">
+        <input id="new-player-libero" v-model="newPlayer.is_libero" type="checkbox" />
+        <label for="new-player-libero">Libero</label>
+      </div>
+      <div class="field-checkbox">
+        <input id="new-player-youth" v-model="newPlayer.is_youth_player" type="checkbox" />
+        <label for="new-player-youth">Jugendspieler</label>
+      </div>
       <button type="submit">Spieler hinzufügen</button>
     </form>
   </div>

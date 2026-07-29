@@ -1,6 +1,6 @@
 # API-Referenz
 
-Stand: Version 2.2 (2026-07-29). Basis-URL: `/api` (im Compose-Stack über das
+Stand: Version 2.4 (2026-07-30). Basis-URL: `/api` (im Compose-Stack über das
 Frontend erreichbar: `http://localhost:8080/api`, direkt: `http://localhost:8000/api`).
 Interaktive OpenAPI-Doku: **`http://localhost:8000/docs`** (immer aktueller als
 diese Datei — hier stehen Semantik und Beispiele, dort das generierte Schema).
@@ -68,17 +68,32 @@ Team inkl. Kader:
   "id": 1, "code": "TSV", "name": "TSV Heimstadt",
   "players": [
     { "id": 3, "number": 7, "last_name": "Musterfrau", "first_name": "Erika",
-      "position": "Setter", "is_libero": false }
+      "position": "Außenangreifer", "is_libero": false, "is_youth_player": false }
   ]
 }
 ```
 
+### `PATCH /api/teams/{team_id}`
+```json
+{ "code": "TSV", "name": "TSV Heimstadt e. V." }
+```
+Beide Felder Pflicht (vollständiger Ersatz, kein Partial-Patch). 409 bei Code-Konflikt
+mit einem anderen Team, 404 bei unbekannter `team_id`.
+
 ### `POST /api/teams/{team_id}/players` → 201
 ```json
 { "number": 7, "last_name": "Musterfrau", "first_name": "Erika",
-  "position": "Setter", "is_libero": false }
+  "position": "Außenangreifer", "is_libero": false, "is_youth_player": false }
 ```
-`number` 0–99, pro Team eindeutig → 409 bei Doppelvergabe.
+`number` 0–99, pro Team eindeutig → 409 bei Doppelvergabe. `position` ist optional
+(`null`/weggelassen → leer) und eines von: `Zuspieler`, `Außenangreifer`,
+`Diagonalangreifer`, `Mittelblocker`, `Libero` — 422 bei anderem Wert. Nur eine
+Validierung neuer Einträge; bereits gespeicherte Freitext-Positionen (vor Version 2.4)
+bleiben unverändert und werden beim Lesen nicht geprüft.
+
+### `PATCH /api/teams/{team_id}/players/{player_id}`
+Gleiches Body-Schema wie beim Anlegen (vollständiger Ersatz). 409 bei Nummern-Konflikt
+mit einem anderen Spieler im selben Team, 404 bei unbekannter `team_id`/`player_id`.
 
 ---
 
@@ -107,6 +122,17 @@ Sonderformate (z. B. Best-of-3 bis 21) möglich. Heim- ≠ Gastteam, sonst 422.
 
 ### `GET /api/matches/{match_id}`
 Einzelnes Match im selben Format wie die Liste.
+
+### `GET /api/matches/{match_id}/sets`
+Sätze eines Matches (Analyse-Strang, `match_sets`), aufsteigend nach `number`:
+
+```json
+[{ "number": 1, "home_points": 25, "away_points": 20, "finished": true, "duration_minutes": 24 }]
+```
+
+Leere Liste, wenn noch keine Sätze importiert/übernommen wurden (z. B. bei einem
+live gescouteten Match vor Roadmap 2.7) — kein Fehler, nur 404 bei unbekannter
+`match_id`. Basis für den Match-Browser im Frontend (`MatchDetailView.vue`).
 
 ---
 

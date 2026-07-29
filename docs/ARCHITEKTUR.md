@@ -1,6 +1,6 @@
 # Architektur
 
-Stand: Version 2.2 (2026-07-29) — siehe `docs/ROADMAP.md` für den Versionsverlauf
+Stand: Version 2.4 (2026-07-30) — siehe `docs/ROADMAP.md` für den Versionsverlauf
 
 ## Überblick
 
@@ -40,7 +40,8 @@ frontend/
   src/
     api.js             zentraler Fetch-Wrapper für alle Backend-Aufrufe
     router/            Vue-Router (History-Mode)
-    views/             TeamsView, MatchesView, LiveScoutView
+    views/             TeamsView, MatchesView, MatchDetailView (Match-Browser), LiveScoutView
+    components/        VolleyballCourt (drehbarer Zonen-Helfer, siehe unten)
     styles.css         globales Styling (kein CSS-Framework)
   Dockerfile (Node-Build-Stage → nginx), nginx.conf, vite.config.js
 docker-compose.yml     EINE Compose-Datei für lokal und NAS (baut aus dem Quellcode;
@@ -133,9 +134,59 @@ Reine Berechnungslogik (DB-frei, wie `match_engine.py`) über den Analyse-Strang
 
 Bewusst **nicht** Teil dieser Version: Live-gescoutete Matches liefern noch keine
 Statistik (der Live-Strang schreibt nur `live_events`, die Zusammenführung in den
-Analyse-Strang folgt mit Roadmap 2.6); ebenso die DV4-„Noten" (0–10-Gesamtwertung
+Analyse-Strang folgt mit Roadmap 2.7); ebenso die DV4-„Noten" (0–10-Gesamtwertung
 mit Mindestbeteiligungsquoten) — die konkreten Zähl-/Quotenkennzahlen decken den
 Bedarf der Roadmap ab, ohne die zusätzliche Komplexität der Notenformeln.
+
+## Match-Browser (`frontend/src/views/MatchDetailView.vue`)
+
+Route `/matches/:id`, verlinkt von der Matches-Liste über den „Ansehen"-Button
+bei `status: finished`. Lädt Match, Sätze (`GET .../sets`), Statistik
+(`GET .../statistics`) sowie beide Kader (für Spielernamen neben den
+Trikotnummern in der Statistiktabelle) und zeigt Endstand, Satzverlauf,
+Team-Kennzahlen (Break-/Side-Out-Quote als Balken, Punktquellen), eine
+Spieler-Statistiktabelle je Team und die Rotationsanalyse je Team.
+
+**Wichtig — Übergangszustand vor Roadmap 2.7**: Ein `finished`-Match kann aus
+zwei Strängen stammen, die aktuell getrennt sind (siehe „Kernkonzept" oben).
+Liefert `GET .../sets` eine leere Liste (live-gescoutetes Match ohne
+übernommene Analyse-Daten), zeigt die Seite statt eines leeren/irreführenden
+Panels einen Hinweis mit Link zur Live-Ansicht. Sobald 2.7 beide Stränge
+zusammenführt, entfällt dieser Sonderfall automatisch (jedes `finished`-Match
+hat dann `match_sets`).
+
+Die Matches-Liste selbst verzweigt seit Version 2.3 nach `status`: ein
+zuvor bestehender Bug schickte **jedes** Match (auch importierte, `finished`)
+in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
+„Satz starten"-Maske zeigte, statt das importierte Ergebnis anzuzeigen.
+
+## Kaderverwaltung & Zonen-Helfer (Version 2.4)
+
+- **Team-/Spieler-Nachbearbeitung**: `PATCH /api/teams/{id}` und
+  `PATCH /api/teams/{id}/players/{id}` ergänzen die bisher fehlende Möglichkeit,
+  Teams/Spieler nach der Anlage zu korrigieren (`TeamsView.vue`, Inline-Edit-Modus).
+- **Position als Enum** (`PlayerPosition` in `app/schemas/team.py`): `Zuspieler`,
+  `Außenangreifer`, `Diagonalangreifer`, `Mittelblocker`, `Libero` (Standard-
+  5-Positionen-System) — validiert nur bei neuen Schreibzugriffen (Create/Update);
+  die DB-Spalte bleibt ein einfaches `VARCHAR`, bereits gespeicherte Freitext-Werte
+  werden beim Lesen nicht geprüft.
+- **`is_youth_player`** (Migration `0004`): reine Kennzeichnung für Spieler mit
+  besonderem Status (Höher-/Doppelspielrecht-Regelungen der Landesverbände),
+  analog zu `is_libero` — keine Regelprüfung in der Engine.
+- **`frontend/src/components/VolleyballCourt.vue`**: drehbare Zonen-/Subzonen-
+  Referenz für die Live-Scouting-Zoneneingabe (Klick hängt die Zonen-Ziffer an
+  die Scout-Code-Zeile an). 9-Zonen-Raster (3×3, je 3×3 m) mit ABCD-Subzonen
+  (je 1,5×1,5 m); Zonenlayout `4,3,2 / 7,8,9 / 5,6,1` (Netzreihe/Mitte/Grundlinie)
+  und die Subzonen-Eckzuordnung (A=unten-rechts, B=oben-rechts, C=oben-links,
+  D=unten-links, im Uhrzeigersinn) sind gegen die Referenzimplementierung
+  `openvolley/datavolley` (R-Paket, Funktion `dv_xy()` in `R/plot.R`) verifiziert.
+  Die Drehung ist ein reiner CSS-Transform (`rotate(180deg)` auf das Grid, mit
+  gegenläufiger Rotation der Zellbeschriftung) — dieselbe kanonische Datenstruktur
+  ergibt dadurch exakt das (punktgespiegelte) Zonenraster der Gegenfeldseite, ohne
+  eine zweite Tabelle pflegen zu müssen.
+- Bewusst **kein** vollständiger Klickpfad-Ersatz (bleibt Roadmap 2.5): der
+  Zonen-Helfer hängt nur die rohe Zonen-Ziffer an, ohne Skill/Bewertung/Spieler
+  strukturiert abzufragen.
 
 ## Konfiguration
 

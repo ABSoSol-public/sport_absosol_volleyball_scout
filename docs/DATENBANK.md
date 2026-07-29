@@ -1,6 +1,6 @@
 # Datenbank
 
-Stand: 2026-07-29. Einzige Datenbank ist die **MariaDB 10.11 auf der Synology**
+Stand: 2026-07-30. Einzige Datenbank ist die **MariaDB 10.11 auf der Synology**
 (`SYNOLOGY_DB_*` in der `.env`) — sowohl für die lokale Entwicklung als auch im
 NAS-Deployment; einen lokalen DB-Container gibt es bewusst nicht
 (Nutzerentscheidung 2026-07-28). Charset utf8mb4. Die Tests laufen gegen
@@ -12,7 +12,8 @@ SQLite in-memory. ORM-Definitionen: `backend/app/models/entities.py`.
   DB-URL aus der App-Konfiguration, keine URL im Ini-File).
 - Initial-Schema: `backend/alembic/versions/0001_initial.py`.
 - `0002_users.py` (Login), `0003_rally_setter_position.py` (Setter-Positionen
-  je Ballwechsel für die Rotationsanalyse, Version 2.2).
+  je Ballwechsel für die Rotationsanalyse, Version 2.2), `0004_player_edit_youth_flag.py`
+  (Jugendspieler-Kennzeichnung, Version 2.4).
 - Im Container laufen Migrationen **automatisch** beim Start
   (`docker-entrypoint.sh`: auf DB warten → `alembic upgrade head` → uvicorn).
 - Neue Migration anlegen: `cd backend && .venv/bin/alembic revision -m "…"`
@@ -60,8 +61,9 @@ Anlage/Passwort-Reset ausschließlich über `./create-user.sh` (keine Registrier
 | team_id | INT FK→teams.id | ON DELETE CASCADE |
 | number | INT | UNIQUE je Team (`uq_player_team_number`) |
 | last_name / first_name | VARCHAR(80) | |
-| position | VARCHAR(20) | Freitext (Setter, Outside, …) |
+| position | VARCHAR(20) | Freitext in der Spalte, seit Version 2.4 an der API-Schicht auf ein Enum beschränkt (`Zuspieler`/`Außenangreifer`/`Diagonalangreifer`/`Mittelblocker`/`Libero`) — ältere Freitext-Werte bleiben unverändert |
 | is_libero | BOOL | |
+| is_youth_player | BOOL | Jugendspieler-Kennzeichnung (Migration 0004), reiner Marker ohne Regelprüfung |
 
 ### `matches`
 | Spalte | Typ | Hinweise |

@@ -31,3 +31,13 @@ class MatchRead(BaseModel):
     timeouts_per_set: int
     home_team: TeamRead
     away_team: TeamRead
+
+
+class MatchSetRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    number: int
+    home_points: int
+    away_points: int
+    finished: bool
+    duration_minutes: int | None

@@ -6,7 +6,7 @@ from app.api.deps import require_writer
 from app.db.session import get_db
 from app.engine.statistics import ActionRow, RallyRow, compute_match_statistics
 from app.models import Match, MatchSet, Rally, Team, User
-from app.schemas.match import MatchCreate, MatchRead
+from app.schemas.match import MatchCreate, MatchRead, MatchSetRead
 from app.schemas.statistics import MatchStatisticsRead
 
 router = APIRouter(prefix="/matches", tags=["matches"])
@@ -41,6 +41,17 @@ def get_match(match_id: int, db: Session = Depends(get_db)) -> Match:
     if match is None:
         raise HTTPException(404, "Match nicht gefunden.")
     return match
+
+
+@router.get("/{match_id}/sets", response_model=list[MatchSetRead])
+def get_match_sets(match_id: int, db: Session = Depends(get_db)) -> list[MatchSet]:
+    if db.get(Match, match_id) is None:
+        raise HTTPException(404, "Match nicht gefunden.")
+    return list(
+        db.scalars(
+            select(MatchSet).where(MatchSet.match_id == match_id).order_by(MatchSet.number)
+        )
+    )
 
 
 @router.get("/{match_id}/statistics", response_model=MatchStatisticsRead)
