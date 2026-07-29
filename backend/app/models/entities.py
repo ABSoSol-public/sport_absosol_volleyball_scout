@@ -138,6 +138,12 @@ class ScoutAction(Base):
     evaluation: Mapped[str | None] = mapped_column(String(1), nullable=True)  # # + ! - / =
     start_zone: Mapped[int | None] = mapped_column(nullable=True)
     end_zone: Mapped[int | None] = mapped_column(nullable=True)
+    # Advanced Code: Angriffskombination/Setter-Call (Skill A bzw. E), Ziel-Angriff
+    # (Front/Center/Back/Pipe/Setter) und Subzone (A-D, Richtungsverfeinerung der
+    # Zielzone) — siehe ../recherche/Data_Volley_4_Funktionsanalyse.md Abschnitt 3.2.
+    attack_combination: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    target_attack: Mapped[str | None] = mapped_column(String(1), nullable=True)
+    subzone: Mapped[str | None] = mapped_column(String(1), nullable=True)  # A B C D
 
     rally: Mapped[Rally] = relationship(back_populates="actions")
 

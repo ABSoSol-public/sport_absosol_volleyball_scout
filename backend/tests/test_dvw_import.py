@@ -40,7 +40,7 @@ DVW_SAMPLE = "\r\n".join(
         "*z1>LUp;;;;;;;;;1;1;1;;;;7;9;0;0;0;0;3;5;0;0;0;0;",
         "*07SQ+~~~15;;;;;;;19.31.21;1;1;1;1;100;;7;9;0;0;0;0;3;5;0;0;0;0;",
         "a03RQ-~~~15;;;;;;;19.31.21;1;1;1;1;100;;7;9;0;0;0;0;3;5;0;0;0;0;",
-        "a05AH=~~~24~H;;s;;;;;19.31.27;1;1;1;1;105;;7;9;0;0;0;0;3;5;0;0;0;0;",
+        "a05AH=X5F24BH;;s;;;;;19.31.27;1;1;1;1;105;;7;9;0;0;0;0;3;5;0;0;0;0;",
         "*p01:00;;;;;;;19.31.30;1;1;1;1;108;;7;9;0;0;0;0;3;5;0;0;0;0;",
         "*07SQ=;;;;;;;19.31.50;1;1;1;1;120;;7;9;0;0;0;0;3;5;0;0;0;0;",
         "ap01:01;;;;;;;19.31.52;1;1;1;1;122;;7;9;0;0;0;0;3;5;0;0;0;0;",
@@ -65,6 +65,14 @@ def test_parse_dvw_sample() -> None:
     attack = next(r for r in parsed.scout_rows if r.skill == "A")
     assert attack.side == "away" and attack.player_number == 5
     assert attack.evaluation == "=" and attack.start_zone == 2 and attack.end_zone == 4
+    assert attack.attack_combination == "X5"
+    assert attack.target_attack == "F"
+    assert attack.subzone == "B"
+
+    reception = next(r for r in parsed.scout_rows if r.skill == "R")
+    assert reception.attack_combination is None
+    assert reception.subzone is None
+
     point = next(r for r in parsed.scout_rows if r.point_side)
     assert point.point_side == "home" and (point.home_score, point.away_score) == (1, 0)
 

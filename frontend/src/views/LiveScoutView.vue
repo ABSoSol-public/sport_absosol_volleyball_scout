@@ -22,8 +22,13 @@ const lineupSelection = ref({ home: blankLineup(), away: blankLineup() });
 const actionCodes = ref("");
 const sub = ref({ side: "home", player_out: null, player_in: null });
 
+// Der Scout-Code-Grammatik folgend (Startzone, dann Zielzone, dann optional
+// Subzone NUR zur Zielzone) muss der Zonen-Helfer wissen, ob ein Klick gerade
+// die Start- oder die Zielzone (mit Richtungs-Subzone) einträgt.
+const zoneEntryMode = ref("start"); // "start" | "end"
+
 function appendZone(selection) {
-  actionCodes.value += selection.zone;
+  actionCodes.value += zoneEntryMode.value === "end" ? selection.zone + selection.subzone : selection.zone;
 }
 
 const setRunning = computed(() => state.value?.set_running);
@@ -256,10 +261,21 @@ onMounted(refresh);
 
       <details class="card">
         <summary>Zonen-Helfer (Netz oben, drehbar für die Gegenseite)</summary>
+        <div class="form-row" style="justify-content: center">
+          <div class="field-checkbox">
+            <input id="zone-mode-start" v-model="zoneEntryMode" type="radio" value="start" />
+            <label for="zone-mode-start">Startzone</label>
+          </div>
+          <div class="field-checkbox">
+            <input id="zone-mode-end" v-model="zoneEntryMode" type="radio" value="end" />
+            <label for="zone-mode-end">Zielzone (+ Richtung)</label>
+          </div>
+        </div>
         <VolleyballCourt @select="appendZone" />
         <p class="muted" style="text-align: center">
-          Klick fügt die Zonen-Ziffer ans Ende der Scout-Code-Zeile an; die Subzone (A–D)
-          dient nur zur Orientierung.
+          Klick fügt im Modus „Startzone" nur die Zonen-Ziffer an, im Modus
+          „Zielzone" Ziffer + Subzonen-Buchstabe (A–D) — die Subzone verfeinert die
+          Zielzone als Richtungsangabe (siehe Code-Grammatik: Start → Ziel+Subzone).
         </p>
       </details>
 

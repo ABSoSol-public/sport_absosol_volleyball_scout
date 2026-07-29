@@ -101,8 +101,8 @@ Payload-Formate:
 
 // rally — actions sind bereits geparste Scout-Codes (Rohcode bleibt erhalten)
 { "winner": "away", "actions": [
-    { "raw_code": "a6AH#", "side": "away", "player_number": 6, "skill": "A",
-      "hit_type": "H", "evaluation": "#", "start_zone": null, "end_zone": null } ] }
+    { "raw_code": "a6AH#45B", "side": "away", "player_number": 6, "skill": "A",
+      "hit_type": "H", "evaluation": "#", "start_zone": 4, "end_zone": 5, "subzone": "B" } ] }
 
 // substitution
 { "side": "home", "player_out": 7, "player_in": 19 }
@@ -148,6 +148,9 @@ wird nie gespeichert, sondern bei jedem Zugriff per Replay rekonstruiert
 | hit_type | CHAR(1) NULL | H M Q T U N O |
 | evaluation | CHAR(1) NULL | # + ! - / = |
 | start_zone / end_zone | INT NULL | 1–9 |
+| attack_combination | VARCHAR(4) NULL | Angriffskombination bzw. Setter-Call (Advanced Code 7–8), z. B. `X5`, `K1` — nur beim DVW-Import befüllt (Migration 0005) |
+| target_attack | CHAR(1) NULL | Ziel-Angriff: F(ront)/C(enter)/B(ack)/P(ipe)/S(etter) (Advanced Code 9) |
+| subzone | CHAR(1) NULL | A–D, verfeinert `end_zone` als Richtungsangabe (Advanced Code 12) — sowohl beim Import als auch aus der Live-Direkteingabe (`14AH+45B`) |
 
 Die Spalten spiegeln den DataVolley-**Main-Code**; für Advanced/Extended-Anteile
 (Kombinationen, Setter-Calls, Subzonen) werden bei Bedarf Spalten ergänzt —

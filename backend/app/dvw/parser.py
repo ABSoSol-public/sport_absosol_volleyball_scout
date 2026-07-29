@@ -4,6 +4,8 @@ Feldlayout nach `docs/DVW-FORMAT.md` (an echten Dateien verifiziert):
 Sektionen `[3XXX]`, Semikolon-Felder, `~`-Padding im Code-Feld auf feste
 Positionen (Main 1–6, Cmb 7–8, Target 9, Startzone 10, Endzone 11, Subzone 12,
 Extended 13–15, Custom 16–20). Legacy-Dateien sind häufig CP1252-kodiert.
+Cmb/Target/Subzone (Angriffskombination bzw. Setter-Call, Ziel-Angriff, Richtungs-
+Subzone) werden seit Version 2.5 mit ausgelesen, nicht nur Start-/Endzone.
 """
 
 import re
@@ -59,6 +61,13 @@ class DvwScoutRow:
     evaluation: str | None = None
     start_zone: int | None = None
     end_zone: int | None = None
+    # Advanced Code (Positionen 7-9/12): Angriffskombination bzw. Setter-Call
+    # (bei Skill A bzw. E), Ziel-Angriff (Front/Center/Back/Pipe/Setter) und die
+    # Subzone (A-D) als Richtungsverfeinerung der Zielzone — siehe
+    # ../recherche/Data_Volley_4_Funktionsanalyse.md Abschnitt 3.2.
+    attack_combination: str | None = None
+    target_attack: str | None = None
+    subzone: str | None = None
     # Nur bei Punktcodes gefüllt:
     point_side: str | None = None
     home_score: int | None = None
@@ -150,10 +159,16 @@ def _parse_code(raw: str, set_number: int, point_phase: str) -> DvwScoutRow:
         row.evaluation = _clean(action.group("evaluation") or "")
         # Positionsfeste Fortsetzung: Cmb(2) Target(1) Start(1) End(1) Sub(1) …
         rest = action.group("rest")
+        cmb = rest[0:2] if len(rest) > 1 else ""
+        target = _clean(rest[2]) if len(rest) > 2 else None
         start = _clean(rest[3]) if len(rest) > 3 else None
         end = _clean(rest[4]) if len(rest) > 4 else None
+        sub = _clean(rest[5]) if len(rest) > 5 else None
+        row.attack_combination = cmb if cmb.strip("~") else None
+        row.target_attack = target
         row.start_zone = int(start) if start and start.isdigit() else None
         row.end_zone = int(end) if end and end.isdigit() else None
+        row.subzone = sub if sub and sub.isalpha() else None
     return row
 
 

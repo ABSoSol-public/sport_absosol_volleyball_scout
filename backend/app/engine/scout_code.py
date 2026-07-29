@@ -2,12 +2,17 @@
 
 Unterstützt den Main Code plus optionale Zonenangaben:
 
-    [*|a]<Nummer 1-2stellig><Skill><Typ?><Bewertung?><Startzone?><Endzone?>
+    [*|a]<Nummer 1-2stellig><Skill><Typ?><Bewertung?><Startzone?><Endzone?><Subzone?>
 
-Beispiele: ``5SQ=``, ``a7AT#``, ``*08RQ#``, ``14AH+45``.
+Beispiele: ``5SQ=``, ``a7AT#``, ``*08RQ#``, ``14AH+45``, ``14AH+45B``.
 Vollständige Referenz: ../recherche/Data_Volley_4_Funktionsanalyse.md, Abschnitt 3.
-Advanced-/Extended-Anteile (Kombinationen, Setter-Calls, Subzonen) folgen später;
-unbekannte Restzeichen bleiben im Rohcode erhalten und werden mitgespeichert.
+Die Subzone (A–D) verfeinert die Zielzone auf 1,5×1,5 m und ist damit die
+eigentliche Richtungsangabe (Startzone → Zielzone+Subzone) — siehe Abschnitt 3.2
+der Recherche sowie `frontend/src/components/VolleyballCourt.vue`. Kombinations-/
+Setter-Call-Codes (Advanced-Code-Feld 7–8) werden hier bewusst noch nicht
+unterstützt (mehrdeutig in der kompakten Direkteingabe ohne weiteres Trennzeichen);
+das folgt mit dem Klickpfad-System (Roadmap 2.5). Unbekannte Restzeichen bleiben
+im Rohcode erhalten und werden mitgespeichert.
 """
 
 import re
@@ -24,6 +29,7 @@ SKILLS = {
 }
 HIT_TYPES = set("HMQTUNO")
 EVALUATIONS = set("#+!-/=")
+SUBZONES = set("ABCD")
 
 _MAIN_CODE = re.compile(
     r"""^
@@ -34,6 +40,7 @@ _MAIN_CODE = re.compile(
     (?P<evaluation>[\#\+\!\-\/\=])?
     (?P<start_zone>[1-9])?
     (?P<end_zone>[1-9])?
+    (?P<subzone>[A-D])?
     (?P<rest>.*)
     $""",
     re.VERBOSE,
@@ -54,6 +61,7 @@ class ParsedAction:
     evaluation: str | None
     start_zone: int | None
     end_zone: int | None
+    subzone: str | None  # A-D, verfeinert die Zielzone (Richtung)
 
 
 def parse_action(code: str, default_side: str = "home") -> ParsedAction:
@@ -61,6 +69,9 @@ def parse_action(code: str, default_side: str = "home") -> ParsedAction:
     match = _MAIN_CODE.match(code.upper().replace("A", "a", 1) if code[:1] == "a" else code.upper())
     if not match or (match.group("rest") and not match.group("evaluation")):
         raise ScoutCodeError(f"Ungültiger Scout-Code: {code!r}")
+    # Subzone ist nur sinnvoll, wenn auch eine Zielzone erfasst wurde.
+    if match.group("subzone") and not match.group("end_zone"):
+        raise ScoutCodeError(f"Ungültiger Scout-Code: {code!r} (Subzone ohne Zielzone).")
 
     side_char = match.group("side")
     if side_char == "a":
@@ -79,4 +90,5 @@ def parse_action(code: str, default_side: str = "home") -> ParsedAction:
         evaluation=match.group("evaluation"),
         start_zone=int(z) if (z := match.group("start_zone")) else None,
         end_zone=int(z) if (z := match.group("end_zone")) else None,
+        subzone=match.group("subzone"),
     )

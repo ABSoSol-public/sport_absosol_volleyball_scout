@@ -45,3 +45,20 @@ def test_invalid_code_raises() -> None:
         parse_action("XX")
     with pytest.raises(ScoutCodeError):
         parse_action("5Z#")
+
+
+def test_parse_subzone_refines_end_zone() -> None:
+    action = parse_action("14AH+45B")
+    assert action.start_zone == 4
+    assert action.end_zone == 5
+    assert action.subzone == "B"
+
+
+def test_subzone_lowercase_is_normalized() -> None:
+    action = parse_action("14AH+45b")
+    assert action.subzone == "B"
+
+
+def test_subzone_without_end_zone_raises() -> None:
+    with pytest.raises(ScoutCodeError):
+        parse_action("5SQ=A")

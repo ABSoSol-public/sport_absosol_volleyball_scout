@@ -160,7 +160,7 @@ zuvor bestehender Bug schickte **jedes** Match (auch importierte, `finished`)
 in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
 „Satz starten"-Maske zeigte, statt das importierte Ergebnis anzuzeigen.
 
-## Kaderverwaltung & Zonen-Helfer (Version 2.4)
+## Kaderverwaltung, Zonen-Helfer & Richtung (Version 2.4–2.5)
 
 - **Team-/Spieler-Nachbearbeitung**: `PATCH /api/teams/{id}` und
   `PATCH /api/teams/{id}/players/{id}` ergänzen die bisher fehlende Möglichkeit,
@@ -185,7 +185,7 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   ergibt dadurch exakt das (punktgespiegelte) Zonenraster der Gegenfeldseite, ohne
   eine zweite Tabelle pflegen zu müssen.
 - Bewusst **kein** vollständiger Klickpfad-Ersatz (bleibt Roadmap 2.5): der
-  Zonen-Helfer hängt nur die rohe Zonen-Ziffer an, ohne Skill/Bewertung/Spieler
+  Zonen-Helfer hängt nur Zonen-Ziffer(n) an, ohne Skill/Bewertung/Spieler
   strukturiert abzufragen.
 - **Kaderbasierte Aufstellungs-Eingabe** (Roadmap 2.5, Nutzerfeedback nach 2.4):
   die Sätze-starten-Maske in `LiveScoutView.vue` zeigt je Team ein Zonen-Raster
@@ -199,6 +199,21 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   (Endaufstellung des Satzes) — das Frontend schlägt daraus die Aufstellung für
   den nächsten Satz vor, auch nach einem Seiten-Reload (analog zum DV4-Verhalten
   „ab Satz 2 wird das vorherige LineUp vorgeschlagen").
+- **Richtungserfassung (Subzone) & Kombinationscodes** (Roadmap 2.5, Nutzerwunsch
+  „lerne aus dem Web, wie DataVolley das macht"): Subzone ist die eigentliche
+  Richtungsangabe (Startzone → Zielzone+Subzone) und wird jetzt an beiden Enden
+  erfasst — Live-Direkteingabe (`app/engine/scout_code.py`, `ParsedAction.subzone`,
+  z. B. `14AH+45B`) und DVW-Import (`app/dvw/parser.py`, `DvwScoutRow.
+  attack_combination`/`target_attack`/`subzone` aus dem Advanced Code, Migration
+  `0005` auf `scout_actions`). `VolleyballCourt.vue` hat dafür einen Start-/
+  Zielzone-Modus (Radio-Buttons): Klick im Start-Modus hängt nur die Zonen-Ziffer
+  an, im Ziel-Modus Ziffer **und** Subzonen-Buchstabe — vorher war die Subzone im
+  Helfer rein dekorativ. Angriffskombinations-/Setter-Call-Codes (Advanced-Code-
+  Feld 7–8, Grundlage für Zuspielverteilung-Analysen) werden beim **Import**
+  miterfasst, aber bewusst **nicht** in die kompakte Live-Direkteingabe
+  aufgenommen (dort mehrdeutig ohne Trennzeichen zur nachfolgenden Zone) — das
+  wäre erst mit einer strukturierten Eingabe (Klickpfad, Roadmap 2.5 Rest-Punkt)
+  sauber lösbar.
 
 ## Konfiguration
 

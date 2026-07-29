@@ -148,6 +148,9 @@ def import_dvw(db: Session, parsed: DvwFile) -> ImportResult:
                     evaluation=action.evaluation,
                     start_zone=action.start_zone,
                     end_zone=action.end_zone,
+                    attack_combination=action.attack_combination,
+                    target_attack=action.target_attack,
+                    subzone=action.subzone,
                 )
             )
         actions_total += len(pending)

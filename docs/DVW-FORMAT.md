@@ -399,6 +399,15 @@ DVWin2007-Handbook S. 20–21):
 | 11 | Zielzone (Endzone) | `1`–`9`, für alle Skills mit Landepunkt (Rec/Set/Dig/Blk/FrB analog) |
 | 12 | Zielzone+ / Subzone | `A`–`D` (verfeinerte Unterteilung der Zielzone in 4 Subzonen, siehe Rotation-und-Direction-Fenster im Handbuch, z. B. S. 43) |
 
+**Umgesetzt (Version 2.6)**: alle drei Felder (Cmb/Ziel-Angriff/Subzone) werden vom Parser
+ausgelesen (`app/dvw/parser.py`, `DvwScoutRow.attack_combination/target_attack/subzone`) und
+landen in `scout_actions` (Migration `0005`). Die Subzone ist auch in der Live-Scouting-
+Direkteingabe erfassbar (`app/engine/scout_code.py`, z. B. `14AH+45B`), inkl. drehbarem
+Zonen-/Subzonen-Helfer im Frontend (`VolleyballCourt.vue`). Kombinationscodes/Setter-Calls
+bleiben in der Direkteingabe bewusst unterstützt nur beim Import (Live-Erfassung wäre in der
+kompakten Kurzeingabe mehrdeutig ohne Trennzeichen) — Details und Beispielcodes (`X5`, `V6`,
+`K1` …) in `../recherche/Data_Volley_4_Funktionsanalyse.md` Abschnitt 3.2.
+
 ### 3.3 Extended Code (Positionen 13–15, optional, nur wenn Zusatzdetails erfasst wurden)
 
 | Position | Feld | Werte je Skill |
@@ -601,13 +610,16 @@ Format bereits produktiv parsen.
    von der genauen Padding-Regel).
 8. **Koordinatenfelder** (`sp_start_coordinate`, `sp_mid_coordinate`, `sp_end_coordinate`):
    Wertebereich/Auflösung/Ursprung (0/0 = welche Ecke des Feldes?) nicht dokumentiert.
-9. **9-Zonen-Grafik für Nicht-Serve-Skills**: keine explizite Handbuch-Grafik gefunden (nur
-   die 5 Serve-Startzonen sind bebildert) — die aus `prompt - erklärung.md` übernommene
-   Zuordnung (Netz 4-3-2 / Mitte 7-8-9 / Grundlinie 5-6-1) ist plausibel, aber nicht
-   Handbuch-verifiziert. Empfehlung: mit der Zonenanzeige/dem Rotationsfenster in echten
-   `.dvw`-Dateien (Koordinatenfelder + bekannte Zielzonen) kreuzverifizieren oder externe
-   Referenz (z. B. volleyball-trainerportal.de, bereits in `prompt - erklärung.md` verlinkt)
-   heranziehen.
+9. ~~**9-Zonen-Grafik für Nicht-Serve-Skills**~~ **Gelöst (2026-07-30)**: keine
+   Handbuch-Grafik vorhanden, aber die Zuordnung (Netz 4-3-2 / Mitte 7-8-9 /
+   Grundlinie 5-6-1, Gegenseite exakt punktgespiegelt) ist unabhängig gegen den
+   Quellcode von `openvolley/datavolley` (R-Paket, Funktion `dv_xy()`,
+   `R/plot.R`) verifiziert — deckt sich exakt mit der hier übernommenen
+   Zuordnung. Ebenso die Subzonen-Eckzuordnung (A unten-rechts, dann gegen den
+   Uhrzeigersinn B/C/D), zusätzlich durch einen zweiten unabhängigen Community-
+   Quellenfund bestätigt. Details: `../recherche/Data_Volley_4_Funktionsanalyse.md`
+   Abschnitt 3.2. Umgesetzt in `backend/app/dvw/parser.py`, `backend/app/engine/
+   scout_code.py` und `frontend/src/components/VolleyballCourt.vue`.
 10. **`[3ATTACKCOMBINATION]` / `[3SETTERCALL]` Spaltenlayout**: nur aus UI-Screenshots grob
     abgeleitet, nicht anhand einer real befüllten `[3SETTERCALL]`-Sektion verifiziert (in
     beiden Stichprobendateien leer).
