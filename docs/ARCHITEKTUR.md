@@ -41,7 +41,7 @@ frontend/
     api.js             zentraler Fetch-Wrapper für alle Backend-Aufrufe
     router/            Vue-Router (History-Mode)
     views/             TeamsView, MatchesView, MatchDetailView (Match-Browser), LiveScoutView
-    components/        VolleyballCourt (drehbarer Zonen-Helfer, siehe unten)
+    components/        VolleyballCourt (Zonen-Helfer, beide Feldhälften, siehe unten)
     styles.css         globales Styling (kein CSS-Framework)
   Dockerfile (Node-Build-Stage → nginx), nginx.conf, vite.config.js
 docker-compose.yml     EINE Compose-Datei für lokal und NAS (baut aus dem Quellcode;
@@ -191,8 +191,16 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   die übrigen Zonengrenzen nur gestrichelt (keine echten Feldlinien).
 - Klick-Reihenfolge rückt automatisch weiter: erster Klick = Startzone, zweiter
   = Zielzone + Subzone (Richtung) — bei Bedarf oben manuell umschaltbar (z. B.
-  Block ohne Startzone). Bewusst **kein** vollständiger Klickpfad-Ersatz (bleibt
-  Roadmap 2.5): der Zonen-Helfer hängt nur Zonen-Ziffer(n) an, ohne Skill/
+  Block ohne Startzone). Start- und Zielzelle bleiben **beide** farblich markiert
+  (unterschiedliche Farben), bis eine neue Aktion beginnt — der zweite Klick
+  ändert/löscht die Startzonen-Markierung nicht. Ein Pfeil (SVG-Overlay über dem
+  Feld) verbindet Start- und Zielzelle, sobald beide gesetzt sind; die Position
+  wird beim Klick direkt aus der gerenderten Zellen-/Feld-Geometrie gemessen
+  (`getBoundingClientRect`, als Prozent relativ zum Feld gespeichert), nicht aus
+  dem Zonenraster errechnet — dadurch unabhängig von der Netzleisten-Höhe (fix
+  in rem) gegenüber den quadratischen, mitskalierenden Feldhälften. Bewusst
+  **kein** vollständiger Klickpfad-Ersatz (bleibt Roadmap 2.5): der Zonen-Helfer
+  hängt nur Zonen-Ziffer(n) an, ohne Skill/
   Bewertung/Spieler strukturiert abzufragen.
 - **Kaderbasierte Aufstellungs-Eingabe** (Roadmap 2.5, Nutzerfeedback nach 2.4):
   die Sätze-starten-Maske in `LiveScoutView.vue` zeigt je Team ein Zonen-Raster

@@ -58,12 +58,46 @@ const cells = computed(() => {
 // weiteren Klick auf einen Umschalter. Für Sonderfälle (z. B. Block ohne
 // Startzone) lässt sich der Modus manuell überschreiben.
 const nextTarget = ref("start"); // "start" | "end"
-const selected = ref(null);
+// Start- und Zielzone bleiben beide markiert, bis eine neue Aktion beginnt —
+// der zweite Klick darf die Startzonen-Markierung nicht verändern/löschen.
+const startSelection = ref(null);
+const endSelection = ref(null);
 
-function select(cell) {
-  selected.value = { zone: cell.zone, subzone: cell.subzone, target: nextTarget.value };
-  emit("select", { zone: cell.zone, subzone: cell.subzone, target: nextTarget.value });
-  nextTarget.value = nextTarget.value === "start" ? "end" : "start";
+// Pfeil Start→Ziel: Position wird direkt beim Klick aus der tatsächlich
+// gerenderten Zellen-/Container-Geometrie gemessen (Prozent relativ zum
+// Feld), statt aus dem Zonenraster zu rechnen — funktioniert dadurch
+// unabhängig von der Netzleisten-Höhe (fix in rem) vs. den quadratischen,
+// mitskalierenden Feldhälften.
+const courtRef = ref(null);
+const startPoint = ref(null);
+const endPoint = ref(null);
+
+function pointFromEvent(event) {
+  const courtRect = courtRef.value.getBoundingClientRect();
+  const cellRect = event.currentTarget.getBoundingClientRect();
+  const x = cellRect.left + cellRect.width / 2 - courtRect.left;
+  const y = cellRect.top + cellRect.height / 2 - courtRect.top;
+  return { x: (x / courtRect.width) * 100, y: (y / courtRect.height) * 100 };
+}
+
+function select(cell, event) {
+  const target = nextTarget.value;
+  const point = pointFromEvent(event);
+  if (target === "start") {
+    startSelection.value = { zone: cell.zone, subzone: cell.subzone };
+    startPoint.value = point;
+    endSelection.value = null; // neue Aktion beginnt, altes Ziel verwerfen
+    endPoint.value = null;
+  } else {
+    endSelection.value = { zone: cell.zone, subzone: cell.subzone };
+    endPoint.value = point;
+  }
+  emit("select", { zone: cell.zone, subzone: cell.subzone, target });
+  nextTarget.value = target === "start" ? "end" : "start";
+}
+
+function isSelected(cell, selection) {
+  return selection && selection.zone === cell.zone && selection.subzone === cell.subzone;
 }
 </script>
 
@@ -86,7 +120,36 @@ function select(cell) {
       </button>
     </div>
 
-    <div class="full-court">
+    <div ref="courtRef" class="full-court">
+      <svg
+        v-if="startPoint && endPoint"
+        class="arrow-overlay"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <marker
+            id="zone-arrowhead"
+            markerWidth="8"
+            markerHeight="8"
+            refX="4"
+            refY="4"
+            orient="auto-start-reverse"
+            markerUnits="userSpaceOnUse"
+          >
+            <path d="M0,0 L8,4 L0,8 Z" fill="#1c2733" />
+          </marker>
+        </defs>
+        <line
+          :x1="startPoint.x"
+          :y1="startPoint.y"
+          :x2="endPoint.x"
+          :y2="endPoint.y"
+          stroke="#1c2733"
+          stroke-width="1.6"
+          marker-end="url(#zone-arrowhead)"
+        />
+      </svg>
       <div class="team-label">{{ awayLabel }}</div>
       <div class="court-half away">
         <template v-for="(row, r) in cells" :key="r">
@@ -99,9 +162,10 @@ function select(cell) {
               'attack-line': cell.attackLine,
               'zone-line': cell.zoneLine,
               'col-line': cell.colLine,
-              selected: selected && selected.zone === cell.zone && selected.subzone === cell.subzone,
+              'selected-start': isSelected(cell, startSelection),
+              'selected-end': isSelected(cell, endSelection),
             }"
-            @click="select(cell)"
+            @click="select(cell, $event)"
           >
             <span class="cell-label rotated">
               <strong>{{ cell.zone }}</strong><small>{{ cell.subzone }}</small>
@@ -123,9 +187,10 @@ function select(cell) {
               'attack-line': cell.attackLine,
               'zone-line': cell.zoneLine,
               'col-line': cell.colLine,
-              selected: selected && selected.zone === cell.zone && selected.subzone === cell.subzone,
+              'selected-start': isSelected(cell, startSelection),
+              'selected-end': isSelected(cell, endSelection),
             }"
-            @click="select(cell)"
+            @click="select(cell, $event)"
           >
             <span class="cell-label">
               <strong>{{ cell.zone }}</strong><small>{{ cell.subzone }}</small>
@@ -136,10 +201,12 @@ function select(cell) {
       <div class="team-label">{{ homeLabel }}</div>
     </div>
 
-    <p v-if="selected" class="court-selection">
-      Gewählt: Zone {{ selected.zone }}{{ selected.subzone }}
-      ({{ selected.target === "start" ? "Start" : "Ziel" }}) — nächster Klick:
-      {{ nextTarget === "start" ? "Startzone" : "Zielzone" }}
+    <p v-if="startSelection || endSelection" class="court-selection">
+      <span v-if="startSelection">Start: Zone {{ startSelection.zone }}</span>
+      <span v-if="endSelection">
+        · Ziel: Zone {{ endSelection.zone }}{{ endSelection.subzone }}
+      </span>
+      <span class="muted"> — nächster Klick: {{ nextTarget === "start" ? "Startzone" : "Zielzone" }}</span>
     </p>
   </div>
 </template>
@@ -166,11 +233,21 @@ function select(cell) {
 }
 
 .full-court {
+  position: relative;
   border: 3px solid #fff;
   outline: 1px solid #c7cdd3;
   border-radius: 4px;
   overflow: hidden;
   background: #d98e4a;
+}
+
+.arrow-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .court-half {
@@ -216,11 +293,19 @@ function select(cell) {
   background: rgba(255, 255, 255, 0.25);
 }
 
-.court-cell.selected {
+.court-cell.selected-start {
+  background: #33475b;
+}
+
+.court-cell.selected-start .cell-label {
+  color: #fff;
+}
+
+.court-cell.selected-end {
   background: #b3202c;
 }
 
-.court-cell.selected .cell-label {
+.court-cell.selected-end .cell-label {
   color: #fff;
 }
 
