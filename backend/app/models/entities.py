@@ -110,6 +110,10 @@ class Rally(Base):
     winner_side: Mapped[str] = mapped_column(String(4))  # home|away
     home_score_after: Mapped[int] = mapped_column()
     away_score_after: Mapped[int] = mapped_column()
+    # Rotationsposition (1-6) des jeweiligen Zuspielers während dieses Ballwechsels
+    # (aus dem DVW-Scout-Strom übernommen, Grundlage für die Rotationsanalyse).
+    home_setter_position: Mapped[int | None] = mapped_column(nullable=True)
+    away_setter_position: Mapped[int | None] = mapped_column(nullable=True)
 
     match_set: Mapped[MatchSet] = relationship(back_populates="rallies")
     actions: Mapped[list["ScoutAction"]] = relationship(

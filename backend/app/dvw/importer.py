@@ -130,6 +130,8 @@ def import_dvw(db: Session, parsed: DvwFile) -> ImportResult:
             winner_side=row.point_side,
             home_score_after=row.home_score or 0,
             away_score_after=row.away_score or 0,
+            home_setter_position=row.home_setter_position,
+            away_setter_position=row.away_setter_position,
         )
         db.add(rally)
         db.flush()

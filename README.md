@@ -2,8 +2,9 @@
 
 Eigene Scouting- und Analyse-Software für Volleyball: **Live-Scouting** mit vollständiger
 Regelabbildung (Punkte, Side-Out, Rotation, Sätze, Wechsel, Auszeiten, Undo) und
-**Import bestehender DataVolley-Dateien** (`.dvw`, Upload auf der Matches-Seite).
-Login-pflichtig mit Rollen (admin/viewer). Statistik-Auswertung folgt (Roadmap 2.2).
+**Import bestehender DataVolley-Dateien** (`.dvw`, Upload auf der Matches-Seite) samt
+**Statistik-Auswertung** (Spieler-/Team-Kennzahlen, Rotationsanalyse, `GET /matches/{id}/statistics`).
+Login-pflichtig mit Rollen (admin/viewer).
 
 ## Architektur
 

@@ -1,6 +1,6 @@
 # API-Referenz
 
-Stand: Version 2.1 (2026-07-28). Basis-URL: `/api` (im Compose-Stack über das
+Stand: Version 2.2 (2026-07-29). Basis-URL: `/api` (im Compose-Stack über das
 Frontend erreichbar: `http://localhost:8080/api`, direkt: `http://localhost:8000/api`).
 Interaktive OpenAPI-Doku: **`http://localhost:8000/docs`** (immer aktueller als
 diese Datei — hier stehen Semantik und Beispiele, dort das generierte Schema).
@@ -124,6 +124,60 @@ importiert Match, Sätze, Ballwechsel und Aktionen in den Analyse-Strang:
 ```
 
 Ungültige Datei → 422; Rolle `viewer` → 403.
+
+---
+
+## Statistik-Auswertung
+
+### `GET /api/matches/{match_id}/statistics`
+Berechnet die Statistik über alle Sätze/Ballwechsel eines Matches (Analyse-
+Strang: `match_sets`/`rallies`/`scout_actions`) — Formeln aus der DV4-Recherche
+(siehe `engine/statistics.py`). Match ohne importierte/abgeschlossene Daten
+liefert leere Listen/`null`-Quoten, nicht 404 (404 nur bei unbekannter
+`match_id`).
+
+```json
+{
+  "home_players": [
+    { "player_number": 7,
+      "serve": { "total": 12, "errors": 1, "aces": 2 },
+      "reception": { "total": 0, "errors": 0, "positive": 0, "perfect": 0,
+                     "positive_pct": null, "perfect_pct": null },
+      "attack": { "total": 30, "errors": 3, "blocked": 2, "kills": 14,
+                  "efficiency": 0.3, "kill_pct": 46.7 },
+      "block": { "total": 30, "points": 4 } }
+  ],
+  "away_players": [ "…gleiches Schema…" ],
+  "home_team": {
+    "rallies_served": 40, "points_won_serving": 26,
+    "rallies_received": 38, "points_won_receiving": 19,
+    "points_total": 45, "break_rate": 65.0, "side_out_rate": 50.0,
+    "point_sources": { "serve": 4, "attack": 14, "block": 3, "opponent_errors": 24 }
+  },
+  "away_team": { "…gleiches Schema…" },
+  "home_rotations": [
+    { "position": 1, "rallies_served": 8, "points_won_serving": 5,
+      "rallies_received": 6, "points_won_receiving": 3,
+      "break_rate": 62.5, "side_out_rate": 50.0 }
+  ],
+  "away_rotations": [ "…gleiches Schema, Position 1–6…" ]
+}
+```
+
+- **Serve**: `aces`/`errors` = Bewertung `#`/`=`.
+- **Reception**: `positive` = Bewertung `+` oder `#` (Annahme-Positivquote),
+  `perfect` = nur `#`.
+- **Attack**: `efficiency` = (Kills − Errors − Blocked) / Total (klassische
+  Angriffseffizienz); `blocked` = Bewertung `/` (Angriff geblockt, Punkt Gegner).
+- **Block**: `points` = Bewertung `#` (Blockpunkt).
+- **Team**: `break_rate` = Punkte bei eigenem Aufschlag / eigene Aufschlag-
+  Ballwechsel; `side_out_rate` = Punkte bei gegnerischem Aufschlag / eigene
+  Annahme-Ballwechsel. `point_sources.opponent_errors` ist ein **Residual**
+  (Gesamtpunkte − Serve − Angriff − Block), analog zum DV4-Report.
+- **Rotation**: dieselben Kennzahlen gruppiert nach der Setterposition (1–6)
+  aus dem DVW-Feld `sp_home/guest_setter_pos`, je Team separat für eigenen
+  Aufschlag und eigene Annahme.
+- Quoten sind `null` (statt `0`), wenn die zugehörige Ballwechsel-Anzahl `0` ist.
 
 ## Live-Scouting
 

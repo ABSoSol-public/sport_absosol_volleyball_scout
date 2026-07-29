@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import require_writer
 from app.db.session import get_db
-from app.models import Match, Team, User
+from app.engine.statistics import ActionRow, RallyRow, compute_match_statistics
+from app.models import Match, MatchSet, Rally, Team, User
 from app.schemas.match import MatchCreate, MatchRead
+from app.schemas.statistics import MatchStatisticsRead
 
 router = APIRouter(prefix="/matches", tags=["matches"])
 
@@ -39,3 +41,47 @@ def get_match(match_id: int, db: Session = Depends(get_db)) -> Match:
     if match is None:
         raise HTTPException(404, "Match nicht gefunden.")
     return match
+
+
+@router.get("/{match_id}/statistics", response_model=MatchStatisticsRead)
+def get_match_statistics(match_id: int, db: Session = Depends(get_db)) -> MatchStatisticsRead:
+    if db.get(Match, match_id) is None:
+        raise HTTPException(404, "Match nicht gefunden.")
+
+    rallies = db.scalars(
+        select(Rally)
+        .join(MatchSet)
+        .where(MatchSet.match_id == match_id)
+        .options(selectinload(Rally.actions))
+        .order_by(MatchSet.number, Rally.number)
+    )
+    rally_rows = [
+        RallyRow(
+            serving_side=rally.serving_side,
+            winner_side=rally.winner_side,
+            home_setter_position=rally.home_setter_position,
+            away_setter_position=rally.away_setter_position,
+            actions=[
+                ActionRow(
+                    side=action.side,
+                    player_number=action.player_number,
+                    skill=action.skill,
+                    evaluation=action.evaluation,
+                )
+                for action in rally.actions
+            ],
+        )
+        for rally in rallies
+    ]
+
+    stats = compute_match_statistics(rally_rows)
+    return MatchStatisticsRead.model_validate(
+        {
+            "home_players": stats.players["home"],
+            "away_players": stats.players["away"],
+            "home_team": stats.teams["home"],
+            "away_team": stats.teams["away"],
+            "home_rotations": stats.rotations["home"],
+            "away_rotations": stats.rotations["away"],
+        }
+    )

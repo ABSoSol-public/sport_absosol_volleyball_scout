@@ -1,6 +1,6 @@
 # Architektur
 
-Stand: Version 2.1 (2026-07-28) — siehe `docs/ROADMAP.md` für den Versionsverlauf
+Stand: Version 2.2 (2026-07-29) — siehe `docs/ROADMAP.md` für den Versionsverlauf
 
 ## Überblick
 
@@ -28,7 +28,7 @@ backend/
     db/                SQLAlchemy-Engine/Session (base.py, session.py)
     models/            ORM-Entitäten (siehe docs/DATENBANK.md)
     schemas/           Pydantic-Request-/Response-Modelle
-    engine/            Spiellogik (DB-frei, siehe unten)
+    engine/            Spiellogik + Statistik (DB-frei, siehe unten)
     dvw/               DVW-Parser + -Importer (Analyse-Strang, siehe docs/DVW-FORMAT.md)
     api/               FastAPI-Router: auth, teams, matches, live, imports
     cli.py             Verwaltungs-CLI (create-user, via ../create-user.sh)
@@ -114,6 +114,29 @@ bleiben im Rohcode erhalten. Advanced-/Extended-/Compound-Codes folgen laut
 Roadmap; vollständige Referenz in der DV4-Tiefenrecherche
 (`../recherche/Data_Volley_4_Funktionsanalyse.md`, außerhalb des Repos).
 
+## Statistik-Engine (`app/engine/statistics.py`)
+
+Reine Berechnungslogik (DB-frei, wie `match_engine.py`) über den Analyse-Strang
+(`match_sets`/`rallies`/`scout_actions`); die API-Schicht (`app/api/matches.py`,
+`GET /{match_id}/statistics`) lädt die Rally-/Aktionsdaten und übergibt sie als
+`RallyRow`/`ActionRow`. Kennzahlen (Formeln aus der DV4-Funktionsanalyse):
+
+- **Spieler**: Serve (Tot/Err/Ass), Reception (Tot/Err/Positivquote/Exzellenzquote),
+  Attack (Tot/Err/Blocked/Kills/Effizienz), Block (Tot/Punkte).
+- **Team**: Side-Out-/Break-Quote, Punktquellen mit `opponent_errors` als
+  **Residual** (Gesamtpunkte − Serve − Angriff − Block), exakt wie im DV4-Report.
+- **Rotation**: dieselben Kennzahlen gruppiert nach Setterposition (1–6) — dafür
+  trägt `Rally.home_setter_position`/`away_setter_position` (Migration 0003) den
+  Wert aus dem DVW-Feld `sp_home/guest_setter_pos` (siehe `docs/DVW-FORMAT.md`
+  Abschnitt 2.12), vom DVW-Importer direkt aus der die Rally abschließenden
+  Scout-Zeile übernommen.
+
+Bewusst **nicht** Teil dieser Version: Live-gescoutete Matches liefern noch keine
+Statistik (der Live-Strang schreibt nur `live_events`, die Zusammenführung in den
+Analyse-Strang folgt mit Roadmap 2.6); ebenso die DV4-„Noten" (0–10-Gesamtwertung
+mit Mindestbeteiligungsquoten) — die konkreten Zähl-/Quotenkennzahlen decken den
+Bedarf der Roadmap ab, ohne die zusätzliche Komplexität der Notenformeln.
+
 ## Konfiguration
 
 `app/core/config.py` (pydantic-settings, Env-Präfix `VOLLEYSCOUT_`):
@@ -152,6 +175,10 @@ Navigation.
 - `tests/test_engine.py` — Regelwerk isoliert (Rotation, 2-Punkte-Abstand,
   Tiebreak, Matchende, Limits, Replay-Determinismus).
 - `tests/test_scout_code.py` — Parser-Grenzfälle.
+- `tests/test_dvw_import.py` — DVW-Parser (Sample-Datei) + Import-Endpunkt.
+- `tests/test_statistics.py` — Statistik-Formeln isoliert (Spieler/Team/
+  Rotation) sowie der `GET /matches/{id}/statistics`-Endpunkt nach Import.
+- `tests/test_auth.py` — Login/Logout, Rollenprüfung.
 - `tests/test_api.py` — kompletter API-Flow gegen SQLite in-memory
   (Dependency-Override von `get_db`); die echte MariaDB wird nur im
   Compose-Stack getestet.

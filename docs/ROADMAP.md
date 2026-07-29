@@ -1,8 +1,8 @@
 # Roadmap
 
-**Aktuelle Version: 2.1** — die App ist live auf der Synology (seit 2026-07-28, Domain siehe
-lokale `.env`), mit Login-Pflicht (2.0) und DVW-Import (2.1).
-Nächste geplante Version: **2.2 Statistik-Auswertung**.
+**Aktuelle Version: 2.2** — die App ist live auf der Synology (seit 2026-07-28, Domain siehe
+lokale `.env`), mit Login-Pflicht (2.0), DVW-Import (2.1) und Statistik-Auswertung (2.2).
+Nächste geplante Version: **2.3 Match-Browser**.
 
 ## Versionsschema
 
@@ -65,14 +65,20 @@ Nächste geplante Version: **2.2 Statistik-Auswertung**.
       Teams/Spieler-Wiederverwendung, Match + Sätze + Ballwechsel + Aktionen in den
       Analyse-Strang (`match_sets`/`rallies`/`scout_actions`)
 
-## Geplante Versionen
+### 2.2 — Statistik-Auswertung (ehem. 1.2, Analyse-Strang) ✅ (2026-07-29)
+- [x] Spieler-Statistiken (Serve Asse/Fehler, Reception Positiv-/Exzellenzquote,
+      Angriffseffizienz `(Kills−Err−Blocked)/Tot`, Blockpunkte) —
+      `backend/app/engine/statistics.py`, Formeln aus der DV4-Recherche
+- [x] Team-Statistiken (Side-Out-/Break-Quote, Punktquellen mit `opponent_errors`
+      als Residual: Gesamtpunkte − Serve − Angriff − Block, wie im DV4-Report)
+- [x] Rotationsanalyse nach Setterposition (1–6) — DVW-Feld `sp_home/guest_setter_pos`
+      wird jetzt geparst und je Ballwechsel auf `Rally.home/away_setter_position`
+      übernommen (Migration 0003), da für eine DV4-treue Rotationsanalyse die reine
+      Side-Out-Zählung nicht ausreicht (Nutzerentscheidung 2026-07-29: volle
+      Setter-Positionen statt vereinfachtem Rotationsindex)
+- [x] REST-Endpunkt `GET /api/matches/{id}/statistics` (Spieler/Team/Rotation home+away)
 
-### 2.2 — Statistik-Auswertung (ehem. 1.2, Analyse-Strang)
-- [ ] Spieler-Statistiken (Asse/Aufschlagfehler, Annahme-Positivquote, Angriffseffizienz,
-      Blockpunkte) — Formeln aus der DV4-Recherche (Effizienz/Index/Noten)
-- [ ] Team-Statistiken (Side-Out-/Break-Quote, Punktquellen)
-- [ ] Rotationsanalyse
-- [ ] REST-Endpunkte zum Abfragen importierter Matches/Statistiken
+## Geplante Versionen
 
 ### 2.3 — Match-Browser (ehem. 1.3, Analyse-Strang)
 - [ ] Match-Detailansicht importierter Spiele (Teams, Sätze, Ergebnis, Statistik-Panel)

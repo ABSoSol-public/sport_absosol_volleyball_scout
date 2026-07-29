@@ -63,6 +63,10 @@ class DvwScoutRow:
     point_side: str | None = None
     home_score: int | None = None
     away_score: int | None = None
+    # Rotationskontext (auf jeder Zeile vorhanden, Felder 9/10 laut
+    # docs/DVW-FORMAT.md Abschnitt 2.12: sp_home_setter_pos/sp_guest_setter_pos):
+    home_setter_position: int | None = None
+    away_setter_position: int | None = None
 
 
 @dataclass
@@ -203,6 +207,13 @@ def parse_dvw(content: bytes) -> DvwFile:
             int(fields[8]) if len(fields) > 8 and fields[8].strip().isdigit() else 1
         )
         point_phase = fields[1].strip() if len(fields) > 1 else ""
-        result.scout_rows.append(_parse_code(raw, set_number, point_phase))
+        row = _parse_code(raw, set_number, point_phase)
+        row.home_setter_position = (
+            int(fields[9]) if len(fields) > 9 and fields[9].strip().isdigit() else None
+        )
+        row.away_setter_position = (
+            int(fields[10]) if len(fields) > 10 and fields[10].strip().isdigit() else None
+        )
+        result.scout_rows.append(row)
 
     return result

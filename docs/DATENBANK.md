@@ -1,6 +1,6 @@
 # Datenbank
 
-Stand: 2026-07-28. Einzige Datenbank ist die **MariaDB 10.11 auf der Synology**
+Stand: 2026-07-29. Einzige Datenbank ist die **MariaDB 10.11 auf der Synology**
 (`SYNOLOGY_DB_*` in der `.env`) — sowohl für die lokale Entwicklung als auch im
 NAS-Deployment; einen lokalen DB-Container gibt es bewusst nicht
 (Nutzerentscheidung 2026-07-28). Charset utf8mb4. Die Tests laufen gegen
@@ -11,6 +11,8 @@ SQLite in-memory. ORM-Definitionen: `backend/app/models/entities.py`.
 - Konfiguration: `backend/alembic.ini` + `backend/alembic/env.py` (zieht die
   DB-URL aus der App-Konfiguration, keine URL im Ini-File).
 - Initial-Schema: `backend/alembic/versions/0001_initial.py`.
+- `0002_users.py` (Login), `0003_rally_setter_position.py` (Setter-Positionen
+  je Ballwechsel für die Rotationsanalyse, Version 2.2).
 - Im Container laufen Migrationen **automatisch** beim Start
   (`docker-entrypoint.sh`: auf DB warten → `alembic upgrade head` → uvicorn).
 - Neue Migration anlegen: `cd backend && .venv/bin/alembic revision -m "…"`
@@ -129,6 +131,7 @@ wird nie gespeichert, sondern bei jedem Zugriff per Replay rekonstruiert
 | number | INT | fortlaufend im Satz |
 | serving_side / winner_side | VARCHAR(4) | `home` \| `away` |
 | home_score_after / away_score_after | INT | Spielstand nach dem Ballwechsel |
+| home_setter_position / away_setter_position | INT NULL | Rotationsposition (1–6) des jeweiligen Zuspielers während des Ballwechsels (DVW-Feld `sp_home/guest_setter_pos`, Migration 0003) — Basis der Rotationsanalyse in `GET /api/matches/{id}/statistics` |
 
 ### `scout_actions`
 | Spalte | Typ | Hinweise |
