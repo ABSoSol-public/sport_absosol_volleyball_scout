@@ -243,13 +243,10 @@ nav.topnav a:hover {
   padding: 0.3rem;
 }
 
-details.card summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: #33475b;
-}
-
-details.card[open] summary {
+.helper-tabs {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
   margin-bottom: 0.8rem;
 }
 

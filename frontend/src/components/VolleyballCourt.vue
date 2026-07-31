@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
+import { transpose } from "../lib/court-grid.js";
 
 const props = defineProps({
   homeLabel: { type: String, default: "Heim" },
@@ -99,10 +100,40 @@ function select(cell, event) {
 function isSelected(cell, selection) {
   return selection && selection.zone === cell.zone && selection.subzone === cell.subzone;
 }
+
+// "90°": dieselbe Umschaltung horizontal/vertikal wie beim Rotations-Helfer
+// (RotationCourt.vue) — Netz läuft waagerecht bzw. senkrecht. Das 6x6-Raster
+// bleibt quadratisch in beiden Fällen, nur transponiert (siehe court-grid.js);
+// eine Randlinie, die horizontal unten lag (border-bottom), liegt nach dem
+// Transponieren an derselben Zelle rechts (border-right) und umgekehrt.
+const vertical = ref(false);
+const activeGrid = computed(() => (vertical.value ? transpose(cells.value) : cells.value));
+
+const STRONG_LINE = "2px solid #fff";
+const WEAK_LINE = "1px dashed rgba(255, 255, 255, 0.45)";
+const WEAK_LINE_COL = "1px dashed rgba(255, 255, 255, 0.3)";
+
+// Beim Transponieren tauschen Zeilen- und Spaltengrenzen die Seite: attackLine
+// und zoneLine waren horizontale Grenzen zwischen Zonen-Zeilen (border-bottom) und
+// werden nach dem Transponieren zu vertikalen Grenzen zwischen Zonen-Spalten
+// (border-right) — und umgekehrt für colLine. Empirisch anhand der
+// transponierten Zellindizes durchgerechnet (siehe PROGRESS.md), nicht geraten.
+function cellLineStyle(cell) {
+  if (vertical.value) {
+    return {
+      borderRight: cell.attackLine ? STRONG_LINE : cell.zoneLine ? WEAK_LINE : undefined,
+      borderBottom: cell.colLine ? WEAK_LINE_COL : undefined,
+    };
+  }
+  return {
+    borderBottom: cell.attackLine ? STRONG_LINE : cell.zoneLine ? WEAK_LINE : undefined,
+    borderRight: cell.colLine ? WEAK_LINE_COL : undefined,
+  };
+}
 </script>
 
 <template>
-  <div class="volleyball-court">
+  <div class="volleyball-court" :style="{ maxWidth: vertical ? '34rem' : '18rem' }">
     <div class="target-toggle">
       <button
         type="button"
@@ -118,9 +149,10 @@ function isSelected(cell, selection) {
       >
         Zielzone (+ Richtung)
       </button>
+      <button type="button" class="secondary" @click="vertical = !vertical">⟳ 90° drehen</button>
     </div>
 
-    <div ref="courtRef" class="full-court">
+    <div ref="courtRef" class="full-court" :class="{ vertical }">
       <svg
         v-if="startPoint && endPoint"
         class="arrow-overlay"
@@ -150,55 +182,55 @@ function isSelected(cell, selection) {
           marker-end="url(#zone-arrowhead)"
         />
       </svg>
-      <div class="team-label">{{ awayLabel }}</div>
-      <div class="court-half away">
-        <template v-for="(row, r) in cells" :key="r">
-          <button
-            v-for="(cell, c) in row"
-            :key="c"
-            type="button"
-            class="court-cell"
-            :class="{
-              'attack-line': cell.attackLine,
-              'zone-line': cell.zoneLine,
-              'col-line': cell.colLine,
-              'selected-start': isSelected(cell, startSelection),
-              'selected-end': isSelected(cell, endSelection),
-            }"
-            @click="select(cell, $event)"
-          >
-            <span class="cell-label rotated">
-              <strong>{{ cell.zone }}</strong><small>{{ cell.subzone }}</small>
-            </span>
-          </button>
-        </template>
+      <div class="court-half-wrap">
+        <div class="team-label">{{ awayLabel }}</div>
+        <div class="court-half away">
+          <template v-for="(row, r) in activeGrid" :key="r">
+            <button
+              v-for="(cell, c) in row"
+              :key="c"
+              type="button"
+              class="court-cell"
+              :style="cellLineStyle(cell)"
+              :class="{
+                'selected-start': isSelected(cell, startSelection),
+                'selected-end': isSelected(cell, endSelection),
+              }"
+              @click="select(cell, $event)"
+            >
+              <span class="cell-label rotated">
+                <strong>{{ cell.zone }}</strong><small>{{ cell.subzone }}</small>
+              </span>
+            </button>
+          </template>
+        </div>
       </div>
 
-      <div class="net-bar">NETZ</div>
+      <div class="net-bar" :class="{ vertical }">NETZ</div>
 
-      <div class="court-half home">
-        <template v-for="(row, r) in cells" :key="r">
-          <button
-            v-for="(cell, c) in row"
-            :key="c"
-            type="button"
-            class="court-cell"
-            :class="{
-              'attack-line': cell.attackLine,
-              'zone-line': cell.zoneLine,
-              'col-line': cell.colLine,
-              'selected-start': isSelected(cell, startSelection),
-              'selected-end': isSelected(cell, endSelection),
-            }"
-            @click="select(cell, $event)"
-          >
-            <span class="cell-label">
-              <strong>{{ cell.zone }}</strong><small>{{ cell.subzone }}</small>
-            </span>
-          </button>
-        </template>
+      <div class="court-half-wrap">
+        <div class="court-half home">
+          <template v-for="(row, r) in activeGrid" :key="r">
+            <button
+              v-for="(cell, c) in row"
+              :key="c"
+              type="button"
+              class="court-cell"
+              :style="cellLineStyle(cell)"
+              :class="{
+                'selected-start': isSelected(cell, startSelection),
+                'selected-end': isSelected(cell, endSelection),
+              }"
+              @click="select(cell, $event)"
+            >
+              <span class="cell-label">
+                <strong>{{ cell.zone }}</strong><small>{{ cell.subzone }}</small>
+              </span>
+            </button>
+          </template>
+        </div>
+        <div class="team-label">{{ homeLabel }}</div>
       </div>
-      <div class="team-label">{{ homeLabel }}</div>
     </div>
 
     <p v-if="startSelection || endSelection" class="court-selection">
@@ -213,8 +245,8 @@ function isSelected(cell, selection) {
 
 <style scoped>
 .volleyball-court {
-  max-width: 18rem;
   margin: 0 auto;
+  transition: max-width 0.2s ease;
 }
 
 .target-toggle {
@@ -234,11 +266,27 @@ function isSelected(cell, selection) {
 
 .full-court {
   position: relative;
+  display: flex;
+  flex-direction: column;
   border: 3px solid #fff;
   outline: 1px solid #c7cdd3;
   border-radius: 4px;
   overflow: hidden;
   background: #d98e4a;
+}
+
+.full-court.vertical {
+  flex-direction: row;
+}
+
+.court-half-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.full-court.vertical .court-half-wrap {
+  flex-direction: row;
 }
 
 .arrow-overlay {
@@ -259,12 +307,14 @@ function isSelected(cell, selection) {
 
 /* Gastfeld = dieselbe Zellliste, aber 180° gedreht (siehe Skript-Kommentar
    oben) — Zellen UND Beschriftung drehen sich mit, die Beschriftung wird pro
-   Zelle wieder zurückgedreht, damit der Text aufrecht bleibt. */
+   Zelle wieder zurückgedreht, damit der Text aufrecht bleibt. Gilt unabhängig
+   von der 90°-Ausrichtung (horizontal/vertikal). */
 .court-half.away {
   transform: rotate(180deg);
 }
 
 .net-bar {
+  flex-shrink: 0;
   height: 1.5rem;
   background: #1c2733;
   color: #fff;
@@ -276,6 +326,16 @@ function isSelected(cell, selection) {
   letter-spacing: 0.2em;
   border-top: 2px solid #fff;
   border-bottom: 2px solid #fff;
+}
+
+.net-bar.vertical {
+  height: auto;
+  width: 1.5rem;
+  border-top: none;
+  border-bottom: none;
+  border-left: 2px solid #fff;
+  border-right: 2px solid #fff;
+  writing-mode: vertical-rl;
 }
 
 .court-cell {
@@ -307,20 +367,6 @@ function isSelected(cell, selection) {
 
 .court-cell.selected-end .cell-label {
   color: #fff;
-}
-
-/* Echte Feldlinie: 3-Meter-/Angriffslinie zwischen Netz- und Mittelreihe */
-.court-cell.attack-line {
-  border-bottom: 2px solid #fff;
-}
-
-/* Reine Auswertungs-Hilfslinien (keine echten Feldlinien), dezent */
-.court-cell.zone-line {
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.45);
-}
-
-.court-cell.col-line {
-  border-right: 1px dashed rgba(255, 255, 255, 0.3);
 }
 
 .cell-label {

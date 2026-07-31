@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
+import { transpose } from "../lib/court-grid.js";
 
 const props = defineProps({
   homeLineup: { type: Array, default: () => [] }, // [Zone1..Zone6]
@@ -21,11 +22,7 @@ const HORIZONTAL_ROWS = [
   [4, 3, 2],
   [5, 6, 1],
 ];
-const VERTICAL_ROWS = [
-  [4, 5],
-  [3, 6],
-  [2, 1],
-];
+const VERTICAL_ROWS = transpose(HORIZONTAL_ROWS);
 
 // "90°": DataVolleys eigener `ROT`-Befehl schaltet die Rotationsanzeige
 // zwischen horizontal/vertikal um (kein freier Winkel) — siehe
@@ -80,7 +77,7 @@ function save(side) {
 </script>
 
 <template>
-  <div class="rotation-court">
+  <div class="rotation-court" :style="{ maxWidth: vertical ? '38rem' : '20rem' }">
     <div class="rotation-toolbar">
       <button type="button" class="secondary" @click="vertical = !vertical">⟳ 90° drehen</button>
       <button type="button" class="secondary" @click="swapped = !swapped">⇄ Seitenwechsel</button>
@@ -164,8 +161,8 @@ function save(side) {
 
 <style scoped>
 .rotation-court {
-  max-width: 20rem;
   margin: 0 auto;
+  transition: max-width 0.2s ease;
 }
 
 .rotation-toolbar {

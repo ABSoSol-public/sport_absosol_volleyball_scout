@@ -252,6 +252,40 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   aufgenommen (dort mehrdeutig ohne Trennzeichen zur nachfolgenden Zone) — das
   wäre erst mit einer strukturierten Eingabe (Klickpfad, Roadmap 2.5 Rest-Punkt)
   sauber lösbar.
+- **Rotations-Gleichstand & UI-Vereinheitlichung** (Roadmap 2.5, Nutzerfeedback
+  nach dem Dogfooding von RotationCourt: „beim Drehen skaliert das Feld zu
+  klein, Zonen-Helfer muss auch drehen können, 2 Reiter ist UI-seitig
+  ungeschickt"):
+  - **`frontend/src/lib/court-grid.js`**: neue `transpose()`-Utility
+    (Matrix-Transponierung), von beiden Feld-Komponenten geteilt genutzt, um
+    das vertikale Zonenraster aus dem horizontalen abzuleiten statt eine
+    zweite Tabelle von Hand zu pflegen. Empirisch gegen den gerenderten
+    RotationCourt verifiziert (nicht die zunächst versuchte Rotationsformel —
+    die lieferte zweimal ein falsches Ergebnis, die Transponierung war die
+    tatsächlich passende Transformation).
+  - **Skalierungs-Fix**: beide Feld-Komponenten hatten einen statischen
+    `max-width`-Wert (für die horizontale Ausrichtung bemessen), der die
+    vertikale Ausrichtung (braucht etwa die doppelte Breite) unnötig
+    zusammenquetschte. `max-width` ist jetzt dynamisch an `vertical` gebunden
+    (`RotationCourt.vue` 20rem/38rem, `VolleyballCourt.vue` 18rem/34rem).
+  - **`VolleyballCourt.vue` jetzt gleichwertig zum Rotationshelfer drehbar**:
+    gleicher „⟳ 90° drehen"-Button, `activeGrid = transpose(cells)` im
+    vertikalen Modus. Da die Grenzlinien (echte Angriffslinie vs. reine
+    Auswertungs-Hilfslinien) beim Transponieren die Seite wechseln, übernimmt
+    eine neue `cellLineStyle(cell)`-Funktion das Mapping: was horizontal
+    `border-bottom` war (Zeilengrenze zwischen Zonen-Reihen: Angriffslinie
+    und Zonen-Hilfslinie) wird vertikal zu `border-right`, was horizontal
+    `border-right` war (Spaltengrenze zwischen Zonen-Spalten) wird vertikal
+    zu `border-bottom` — rechnerisch anhand der transponierten Zellindizes
+    hergeleitet, nicht geschätzt.
+  - **`LiveScoutView.vue`**: das bisherige Nebeneinander aus immer sichtbarem
+    RotationCourt + eingeklapptem `<details>` für VolleyballCourt (wirkte
+    inkonsistent) ist einer echten Tab-Leiste (`.helper-tabs`, Buttons
+    „Rotation" / „Zonen & Richtung") gewichen — nur eine der beiden
+    Feld-Komponenten ist per `v-if`/`v-else` gemountet, Scout-Codes-Eingabe
+    und Auszeiten/Wechsel-Zeile bleiben tab-übergreifend sichtbar darunter.
+    Die jetzt ungenutzten `details.card`-CSS-Regeln in `styles.css` wurden
+    durch `.helper-tabs` ersetzt.
 
 ## Konfiguration
 
