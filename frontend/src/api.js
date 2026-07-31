@@ -75,4 +75,9 @@ export const api = {
   timeout: (matchId, data) =>
     request(`/matches/${matchId}/live/timeout`, { method: "POST", body: JSON.stringify(data) }),
   undo: (matchId) => request(`/matches/${matchId}/live/undo`, { method: "POST" }),
+  correctLineup: (matchId, data) =>
+    request(`/matches/${matchId}/live/lineup-correction`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };

@@ -1,6 +1,6 @@
 # Architektur
 
-Stand: Version 2.4 (2026-07-30) — siehe `docs/ROADMAP.md` für den Versionsverlauf
+Stand: Version 2.4–2.5 (2026-07-31, laufend) — siehe `docs/ROADMAP.md` für den Versionsverlauf
 
 ## Überblick
 
@@ -41,7 +41,8 @@ frontend/
     api.js             zentraler Fetch-Wrapper für alle Backend-Aufrufe
     router/            Vue-Router (History-Mode)
     views/             TeamsView, MatchesView, MatchDetailView (Match-Browser), LiveScoutView
-    components/        VolleyballCourt (Zonen-Helfer, beide Feldhälften, siehe unten)
+    components/        VolleyballCourt (Zonen-/Richtungs-Helfer), RotationCourt
+                       (Rotationsanzeige, siehe unten)
     styles.css         globales Styling (kein CSS-Framework)
   Dockerfile (Node-Build-Stage → nginx), nginx.conf, vite.config.js
 docker-compose.yml     EINE Compose-Datei für lokal und NAS (baut aus dem Quellcode;
@@ -214,6 +215,28 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   (Endaufstellung des Satzes) — das Frontend schlägt daraus die Aufstellung für
   den nächsten Satz vor, auch nach einem Seiten-Reload (analog zum DV4-Verhalten
   „ab Satz 2 wird das vorherige LineUp vorgeschlagen").
+- **`frontend/src/components/RotationCourt.vue`** (Roadmap 2.5, Nutzerwunsch
+  „Volleyballfeld mit den aktuellen Rotationen, wo stehen die Spieler"): ersetzt
+  die schlichten Zonen-Boxen der laufenden-Satz-Anzeige durch ein echtes Feld im
+  selben Stil wie `VolleyballCourt.vue` (Netzleiste, Sandfarbe), aber mit dem
+  einfachen 6-Zonen-Rotationsraster (Netzreihe 4-3-2 im 3-m-Band, Grundlinie
+  5-6-1 im 6-m-Band — Zeilenhöhe deshalb bewusst 1:2 statt 1:1) statt der 36
+  Subzonen-Zellen. Zwei unabhängige Anzeige-Steuerungen, nach DV4-Vorbild
+  (`ROT`/`INV`-Befehle im Command Window, siehe Recherche Abschnitt 4.2):
+  „90° drehen" schaltet zwischen horizontaler und vertikaler Netzausrichtung um
+  (für Scouts, die seitlich statt hinter der Grundlinie sitzen) — die vertikale
+  Zellzuordnung ist eine per Matrixformel abgeleitete 90°-Rotation des
+  horizontalen Rasters, nicht von Hand geschätzt; „Seitenwechsel" vertauscht,
+  welches Team auf welcher Seite angezeigt wird, unabhängig von der Ausrichtung.
+  Liberos sind mit einem „L"-Badge markiert (aus dem geladenen Kader). Aufschlag
+  wird mit demselben `.serve-dot` wie im Scoreboard markiert.
+  **Editierbar**: ein „Aufstellung korrigieren"-Modus macht jede Zone zu einem
+  Kader-`<select>`; Speichern ruft `POST .../live/lineup-correction` auf (neuer
+  Event-Typ `correct_lineup` in `match_engine.py`) — überschreibt die Aufstellung
+  direkt, unabhängig vom regulären Wechsel-Event und **ohne** das Wechsellimit zu
+  belasten, gedacht für Erfassungsfehler (z. B. verpasste Rotation), nicht für
+  echte Spielzüge. Setter-Markierung (im DV4-Vorbild eine eigene Farbe) bewusst
+  nicht umgesetzt, da die Engine noch kein Setter-Tracking kennt (Roadmap 2.8).
 - **Richtungserfassung (Subzone) & Kombinationscodes** (Roadmap 2.5, Nutzerwunsch
   „lerne aus dem Web, wie DataVolley das macht"): Subzone ist die eigentliche
   Richtungsangabe (Startzone → Zielzone+Subzone) und wird jetzt an beiden Enden

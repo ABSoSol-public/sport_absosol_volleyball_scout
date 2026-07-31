@@ -87,6 +87,31 @@ def test_substitution_limits_and_validation() -> None:
         engine.apply_event("substitution", {"side": "home", "player_out": 2, "player_in": 9})
 
 
+def test_correct_lineup_overrides_without_counting_as_substitution() -> None:
+    engine = MatchEngine(Rules(substitutions_per_set=0))
+    start_set(engine)
+    corrected = [2, 1, 3, 4, 5, 6]
+    engine.apply_event("correct_lineup", {"side": "home", "lineup": corrected})
+    state = engine.state()
+    assert state["current_set"]["lineups"]["home"] == corrected
+    assert state["current_set"]["substitutions"]["home"] == 0
+
+
+def test_correct_lineup_validates_six_unique_numbers() -> None:
+    engine = MatchEngine()
+    start_set(engine)
+    with pytest.raises(RuleViolation):
+        engine.apply_event("correct_lineup", {"side": "home", "lineup": [1, 1, 3, 4, 5, 6]})
+    with pytest.raises(RuleViolation):
+        engine.apply_event("correct_lineup", {"side": "home", "lineup": [1, 2, 3, 4, 5]})
+
+
+def test_correct_lineup_requires_running_set() -> None:
+    engine = MatchEngine()
+    with pytest.raises(RuleViolation):
+        engine.apply_event("correct_lineup", {"side": "home", "lineup": HOME})
+
+
 def test_timeout_limit() -> None:
     engine = MatchEngine()
     start_set(engine)

@@ -73,6 +73,7 @@ class MatchEngine:
             "rally": self._on_rally,
             "substitution": self._on_substitution,
             "timeout": self._on_timeout,
+            "correct_lineup": self._on_correct_lineup,
         }
         if event_type not in handlers:
             raise RuleViolation(f"Unbekannter Event-Typ: {event_type}")
@@ -148,6 +149,24 @@ class MatchEngine:
 
         lineup[lineup.index(player_out)] = player_in
         current.substitutions[side] += 1
+
+    def _on_correct_lineup(self, payload: dict[str, Any]) -> None:
+        # Reine Korrektur einer falsch erfassten Aufstellung/Rotation (z. B. verpasste
+        # Seitenwechsel-Rotation) — zählt bewusst NICHT gegen das Wechsellimit und
+        # ist kein regulärer Spielzug, siehe DV4-Vorbild „LINEUP" im Command Window
+        # bzw. die "Ganzteam-Rotation"-Pfeile in vergleichbaren Tools.
+        current = self._require_running_set()
+        side = _validate_side(payload.get("side"))
+        lineup = payload.get("lineup")
+        if not isinstance(lineup, list) or len(lineup) != self.rules.players_on_court:
+            raise RuleViolation(
+                f"Aufstellung {side}: genau {self.rules.players_on_court} "
+                "Spielernummern erforderlich."
+            )
+        numbers = [int(n) for n in lineup]
+        if len(set(numbers)) != len(numbers):
+            raise RuleViolation(f"Aufstellung {side}: Spielernummern müssen eindeutig sein.")
+        current.lineups[side] = numbers
 
     def _on_timeout(self, payload: dict[str, Any]) -> None:
         current = self._require_running_set()

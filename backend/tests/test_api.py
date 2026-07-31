@@ -159,6 +159,31 @@ def test_live_scouting_flow(client: TestClient) -> None:
     assert match["status"] == "live"
 
 
+def test_lineup_correction(client: TestClient) -> None:
+    match_id = _create_match(client)
+    client.post(
+        f"/api/matches/{match_id}/live/set",
+        json={"serving": "home", "home_lineup": HOME_LINEUP, "away_lineup": AWAY_LINEUP},
+    )
+
+    corrected = [6, 5, 4, 3, 2, 1]
+    response = client.post(
+        f"/api/matches/{match_id}/live/lineup-correction",
+        json={"side": "home", "lineup": corrected},
+    )
+    assert response.status_code == 200, response.text
+    state = response.json()
+    assert state["current_set"]["lineups"]["home"] == corrected
+    # Korrektur zählt nicht als Wechsel
+    assert state["current_set"]["substitutions"]["home"] == 0
+
+    invalid = client.post(
+        f"/api/matches/{match_id}/live/lineup-correction",
+        json={"side": "home", "lineup": [1, 1, 3, 4, 5, 6]},
+    )
+    assert invalid.status_code == 422
+
+
 def test_rule_violation_returns_422(client: TestClient) -> None:
     match_id = _create_match(client)
     response = client.post(

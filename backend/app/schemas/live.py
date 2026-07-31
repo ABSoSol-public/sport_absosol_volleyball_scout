@@ -25,3 +25,8 @@ class SubstitutionRequest(BaseModel):
 
 class TimeoutRequest(BaseModel):
     side: Side
+
+
+class LineupCorrectionRequest(BaseModel):
+    side: Side
+    lineup: list[int] = Field(min_length=6, max_length=6)

@@ -17,7 +17,13 @@ from app.db.session import get_db
 from app.engine import MatchEngine, Rules, RuleViolation
 from app.engine.scout_code import ScoutCodeError, parse_action
 from app.models import LiveEvent, Match, User
-from app.schemas.live import RallyRequest, StartSetRequest, SubstitutionRequest, TimeoutRequest
+from app.schemas.live import (
+    LineupCorrectionRequest,
+    RallyRequest,
+    StartSetRequest,
+    SubstitutionRequest,
+    TimeoutRequest,
+)
 
 router = APIRouter(prefix="/matches/{match_id}/live", tags=["live"])
 
@@ -114,6 +120,15 @@ def record_timeout(
 ) -> dict[str, Any]:
     match = _load_match(match_id, db)
     return _append_event(match, "timeout", data.model_dump(), db)
+
+
+@router.post("/lineup-correction")
+def correct_lineup(
+    match_id: int, data: LineupCorrectionRequest, db: Session = Depends(get_db),
+    _writer: User = Depends(require_writer),
+) -> dict[str, Any]:
+    match = _load_match(match_id, db)
+    return _append_event(match, "correct_lineup", data.model_dump(), db)
 
 
 @router.post("/undo")

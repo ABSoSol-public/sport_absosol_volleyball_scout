@@ -1,6 +1,6 @@
 # Datenbank
 
-Stand: 2026-07-30. Einzige Datenbank ist die **MariaDB 10.11 auf der Synology**
+Stand: 2026-07-31. Einzige Datenbank ist die **MariaDB 10.11 auf der Synology**
 (`SYNOLOGY_DB_*` in der `.env`) — sowohl für die lokale Entwicklung als auch im
 NAS-Deployment; einen lokalen DB-Container gibt es bewusst nicht
 (Nutzerentscheidung 2026-07-28). Charset utf8mb4. Die Tests laufen gegen
@@ -89,7 +89,7 @@ wird pro Match aus genau diesen Werten parametrisiert.
 | id | INT PK | |
 | match_id | INT FK→matches.id | ON DELETE CASCADE |
 | seq | INT | fortlaufend je Match, UNIQUE (`uq_event_match_seq`) |
-| event_type | VARCHAR(20) | `start_set` \| `rally` \| `substitution` \| `timeout` |
+| event_type | VARCHAR(20) | `start_set` \| `rally` \| `substitution` \| `timeout` \| `correct_lineup` |
 | payload | JSON | siehe unten |
 | created_at | DATETIME | UTC — implizite Zeitstempel-Basis für Roadmap 1.6 |
 
@@ -109,6 +109,9 @@ Payload-Formate:
 
 // timeout
 { "side": "away" }
+
+// correct_lineup — Korrektur, kein regulärer Wechsel (zählt nicht gegen das Limit)
+{ "side": "home", "lineup": [7,12,4,9,2,15] }
 ```
 
 Undo = Löschen der Zeile mit der höchsten `seq` des Matches. Der Spielzustand

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { api } from "../api";
 import VolleyballCourt from "../components/VolleyballCourt.vue";
+import RotationCourt from "../components/RotationCourt.vue";
 
 const props = defineProps({ id: { type: String, required: true } });
 
@@ -36,10 +37,8 @@ const current = computed(() => state.value?.current_set);
 // Engine-Lineup ist [Zone1, Zone2, ..., Zone6] → Index = Zone - 1.
 const ZONE_ORDER = [4, 3, 2, 5, 6, 1];
 
-function courtZones(side) {
-  const lineup = current.value?.lineups?.[side] ?? [];
-  return ZONE_ORDER.map((zone) => ({ zone, player: lineup[zone - 1] }));
-}
+const correctLineup = ({ side, lineup }) =>
+  run(() => api.correctLineup(props.id, { side, lineup }));
 
 function duplicateNumbers(side) {
   const values = Object.values(lineupSelection.value[side]).filter((v) => v !== null);
@@ -217,31 +216,19 @@ onMounted(refresh);
 
     <!-- Laufender Satz -->
     <div v-if="setRunning" class="card">
-      <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap">
-        <div>
-          <h3 style="text-align: center">{{ match.home_team.code }}</h3>
-          <div class="court">
-            <div v-for="cell in courtZones('home')" :key="cell.zone" class="zone">
-              {{ cell.player }}
-              <small>Zone {{ cell.zone }}</small>
-            </div>
-          </div>
-          <div style="text-align: center">
-            Auszeiten: {{ current.timeouts.home }} · Wechsel: {{ current.substitutions.home }}
-          </div>
-        </div>
-        <div>
-          <h3 style="text-align: center">{{ match.away_team.code }}</h3>
-          <div class="court">
-            <div v-for="cell in courtZones('away')" :key="cell.zone" class="zone">
-              {{ cell.player }}
-              <small>Zone {{ cell.zone }}</small>
-            </div>
-          </div>
-          <div style="text-align: center">
-            Auszeiten: {{ current.timeouts.away }} · Wechsel: {{ current.substitutions.away }}
-          </div>
-        </div>
+      <RotationCourt
+        :home-lineup="current.lineups.home"
+        :away-lineup="current.lineups.away"
+        :home-roster="roster.home"
+        :away-roster="roster.away"
+        :home-label="match.home_team.code"
+        :away-label="match.away_team.code"
+        :serving="current.serving"
+        @save-lineup="correctLineup"
+      />
+      <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-top: 0.6rem">
+        <div>Auszeiten {{ match.home_team.code }}: {{ current.timeouts.home }} · Wechsel: {{ current.substitutions.home }}</div>
+        <div>Auszeiten {{ match.away_team.code }}: {{ current.timeouts.away }} · Wechsel: {{ current.substitutions.away }}</div>
       </div>
 
       <div class="form-row" style="margin-top: 1rem">

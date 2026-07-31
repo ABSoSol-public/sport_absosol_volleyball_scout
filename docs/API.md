@@ -1,6 +1,6 @@
 # API-Referenz
 
-Stand: Version 2.4 (2026-07-30). Basis-URL: `/api` (im Compose-Stack über das
+Stand: Version 2.4–2.5 (2026-07-31, laufend). Basis-URL: `/api` (im Compose-Stack über das
 Frontend erreichbar: `http://localhost:8080/api`, direkt: `http://localhost:8000/api`).
 Interaktive OpenAPI-Doku: **`http://localhost:8000/docs`** (immer aktueller als
 diese Datei — hier stehen Semantik und Beispiele, dort das generierte Schema).
@@ -272,6 +272,18 @@ Die Engine übernimmt Punktvergabe, Side-Out, Rotation, Satz- und Matchende.
 Letztes Event (Rally, Wechsel, Auszeit oder Satzstart) zurücknehmen; 422, wenn
 keine Events vorhanden sind. Der `status` des Matches wird entsprechend
 zurückgesetzt (`finished` → `live` → `scheduled`).
+
+### `POST …/live/lineup-correction`
+```json
+{ "side": "home", "lineup": [7, 12, 4, 9, 2, 15] }
+```
+Setzt die Aufstellung des laufenden Satzes direkt (Liste `[Zone1, …, Zone6]`,
+6 eindeutige Spielernummern erforderlich, sonst 422). Anders als
+`/live/substitution`: **kein** regulärer Spielzug, zählt nicht gegen das
+Wechsellimit und validiert nicht, ob die neuen Spieler vorher auf dem Feld
+standen — reine Korrektur einer falsch erfassten Aufstellung/Rotation (z. B.
+verpasste Seitenwechsel-Rotation), analog zum `LINEUP`-Befehl bzw. den
+„Ganzteam-Rotation"-Pfeilen vergleichbarer Scouting-Tools.
 
 ---
 
