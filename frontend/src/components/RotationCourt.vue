@@ -77,7 +77,7 @@ function save(side) {
 </script>
 
 <template>
-  <div class="rotation-court" :style="{ maxWidth: vertical ? '38rem' : '20rem' }">
+  <div class="rotation-court" :style="{ width: vertical ? '38rem' : '20rem' }">
     <div class="rotation-toolbar">
       <button type="button" class="secondary" @click="vertical = !vertical">⟳ 90° drehen</button>
       <button type="button" class="secondary" @click="swapped = !swapped">⇄ Seitenwechsel</button>
@@ -162,7 +162,8 @@ function save(side) {
 <style scoped>
 .rotation-court {
   margin: 0 auto;
-  transition: max-width 0.2s ease;
+  max-width: 100%;
+  transition: width 0.2s ease;
 }
 
 .rotation-toolbar {
@@ -211,6 +212,16 @@ function save(side) {
   gap: 2px;
   aspect-ratio: 1;
   padding: 4px;
+}
+
+/* Im vertikalen Modus liegt der Team-Wrap in einer Reihe (Team-Label + Feld
+   nebeneinander) — ohne flex-Wachstum bliebe das Feld auf seine Inhaltsgröße
+   beschränkt (viel kleiner als im horizontalen Modus, wo das Block-Element
+   per Default-Stretch die volle Wrap-Breite bekommt). flex:1 gleicht das an,
+   damit die Zellengröße unabhängig von der Ausrichtung gleich bleibt. */
+.rotation-full-court.vertical .rotation-half {
+  flex: 1;
+  min-width: 0;
 }
 
 .rotation-half.away {

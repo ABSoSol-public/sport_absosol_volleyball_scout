@@ -133,7 +133,7 @@ function cellLineStyle(cell) {
 </script>
 
 <template>
-  <div class="volleyball-court" :style="{ maxWidth: vertical ? '34rem' : '18rem' }">
+  <div class="volleyball-court" :style="{ width: vertical ? '34rem' : '18rem' }">
     <div class="target-toggle">
       <button
         type="button"
@@ -246,7 +246,8 @@ function cellLineStyle(cell) {
 <style scoped>
 .volleyball-court {
   margin: 0 auto;
-  transition: max-width 0.2s ease;
+  max-width: 100%;
+  transition: width 0.2s ease;
 }
 
 .target-toggle {
@@ -303,6 +304,15 @@ function cellLineStyle(cell) {
   grid-template-columns: repeat(6, 1fr);
   grid-template-rows: repeat(6, 1fr);
   aspect-ratio: 1;
+}
+
+/* Siehe RotationCourt.vue: im vertikalen Modus liegt der Team-Wrap in einer
+   Reihe, das Feld bräuchte ohne flex-Wachstum nur seine Inhaltsgröße — das
+   ließ die Zellen beim Drehen sichtbar schrumpfen. flex:1 lässt das Feld auf
+   dieselbe Größe wachsen wie im horizontalen Modus. */
+.full-court.vertical .court-half {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Gastfeld = dieselbe Zellliste, aber 180° gedreht (siehe Skript-Kommentar

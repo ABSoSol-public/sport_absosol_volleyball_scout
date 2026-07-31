@@ -266,8 +266,17 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   - **Skalierungs-Fix**: beide Feld-Komponenten hatten einen statischen
     `max-width`-Wert (für die horizontale Ausrichtung bemessen), der die
     vertikale Ausrichtung (braucht etwa die doppelte Breite) unnötig
-    zusammenquetschte. `max-width` ist jetzt dynamisch an `vertical` gebunden
-    (`RotationCourt.vue` 20rem/38rem, `VolleyballCourt.vue` 18rem/34rem).
+    zusammenquetschte. Erster Versuch (nur `max-width` dynamisch an `vertical`
+    gebunden) reichte nicht: `max-width` ist nur eine Obergrenze, erzwingt aber
+    keine tatsächliche Breite — die umgebende Flex-/Grid-Kette blieb
+    Inhaltsgröße-bestimmt (shrink-to-fit) und das Feld landete trotzdem beim
+    kleinen Inhalts-Minimum. Tatsächlicher Fix: eine feste `width` (statt nur
+    `max-width`) je Ausrichtung binden (`RotationCourt.vue` 20rem/38rem,
+    `VolleyballCourt.vue` 18rem/34rem, zusätzlich `max-width:100%` als
+    Sicherheitsnetz gegen schmale Viewports) plus `flex:1` auf dem
+    Feldhälften-Grid im rotierten (Reihen-)Layout, damit es die durch die feste
+    Breite verfügbare Fläche auch tatsächlich ausfüllt statt nur an ihr
+    gedeckelt zu sein.
   - **`VolleyballCourt.vue` jetzt gleichwertig zum Rotationshelfer drehbar**:
     gleicher „⟳ 90° drehen"-Button, `activeGrid = transpose(cells)` im
     vertikalen Modus. Da die Grenzlinien (echte Angriffslinie vs. reine
@@ -280,12 +289,19 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
     hergeleitet, nicht geschätzt.
   - **`LiveScoutView.vue`**: das bisherige Nebeneinander aus immer sichtbarem
     RotationCourt + eingeklapptem `<details>` für VolleyballCourt (wirkte
-    inkonsistent) ist einer echten Tab-Leiste (`.helper-tabs`, Buttons
-    „Rotation" / „Zonen & Richtung") gewichen — nur eine der beiden
-    Feld-Komponenten ist per `v-if`/`v-else` gemountet, Scout-Codes-Eingabe
-    und Auszeiten/Wechsel-Zeile bleiben tab-übergreifend sichtbar darunter.
-    Die jetzt ungenutzten `details.card`-CSS-Regeln in `styles.css` wurden
-    durch `.helper-tabs` ersetzt.
+    inkonsistent) ist einem `.field-helpers`-Flex-Container gewichen, der
+    **beide** Feld-Komponenten gleichzeitig nebeneinander zeigt (kein Klick
+    nötig, um zwischen ihnen zu wechseln — erster Entwurf hatte hier
+    stattdessen Tabs, per Nutzerfeedback direkt danach durch echtes
+    Nebeneinander ersetzt, siehe unten). `flex-wrap: wrap` lässt die beiden
+    Karten bei schmalen Viewports oder wenn beide gleichzeitig in den
+    vertikalen (breiteren) Modus gedreht sind, untereinander statt
+    nebeneinander landen — bewusst als Responsive-Fallback, kein Bug. Der
+    lange Erklärungstext unter dem Zonen-Helfer bekam eine eigene
+    `max-width` (`.court-selection-hint`), da sein ungewrappter Text sonst die
+    bevorzugte (intrinsische) Breite der ganzen Karte aufbläht und das
+    Nebeneinander verhindert. Die jetzt ungenutzten `details.card`-CSS-Regeln
+    in `styles.css` wurden durch `.field-helpers`/`.field-helper` ersetzt.
 
 ## Konfiguration
 

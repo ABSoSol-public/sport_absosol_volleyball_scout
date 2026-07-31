@@ -243,11 +243,33 @@ nav.topnav a:hover {
   padding: 0.3rem;
 }
 
-.helper-tabs {
+.field-helpers {
   display: flex;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 1.5rem;
   justify-content: center;
-  margin-bottom: 0.8rem;
+  align-items: flex-start;
+}
+
+.field-helper {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+/* Ohne Deckelung zwingt der lange Erklärungstext unter dem Zonen-Helfer den
+   umgebenden Flex-Item zum Umbruch (seine ungewrappte Textbreite zählt sonst
+   als bevorzugte Breite) — die beiden Helfer stehen dann untereinander statt
+   nebeneinander. Text bricht innerhalb der Deckelbreite ganz normal um. */
+.field-helper .court-selection-hint {
+  max-width: 20rem;
+  margin: 0.5rem auto 0;
+}
+
+.field-helper-title {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #33475b;
+  margin: 0 0 0.5rem;
 }
 
 .actions-bar {

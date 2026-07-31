@@ -30,8 +30,6 @@ function appendZone(selection) {
     selection.target === "end" ? selection.zone + selection.subzone : selection.zone;
 }
 
-const helperTab = ref("rotation"); // "rotation" | "zones" — ersetzt das frühere Nebeneinander von immer sichtbarem RotationCourt + eingeklapptem VolleyballCourt
-
 const setRunning = computed(() => state.value?.set_running);
 const current = computed(() => state.value?.current_set);
 
@@ -218,45 +216,33 @@ onMounted(refresh);
 
     <!-- Laufender Satz -->
     <div v-if="setRunning" class="card">
-      <div class="helper-tabs">
-        <button
-          type="button"
-          :class="helperTab === 'rotation' ? '' : 'secondary'"
-          @click="helperTab = 'rotation'"
-        >
-          Rotation
-        </button>
-        <button
-          type="button"
-          :class="helperTab === 'zones' ? '' : 'secondary'"
-          @click="helperTab = 'zones'"
-        >
-          Zonen & Richtung
-        </button>
+      <div class="field-helpers">
+        <div class="field-helper">
+          <h3 class="field-helper-title">Rotation</h3>
+          <RotationCourt
+            :home-lineup="current.lineups.home"
+            :away-lineup="current.lineups.away"
+            :home-roster="roster.home"
+            :away-roster="roster.away"
+            :home-label="match.home_team.code"
+            :away-label="match.away_team.code"
+            :serving="current.serving"
+            @save-lineup="correctLineup"
+          />
+        </div>
+        <div class="field-helper">
+          <h3 class="field-helper-title">Zonen & Richtung</h3>
+          <VolleyballCourt
+            :home-label="match.home_team.code"
+            :away-label="match.away_team.code"
+            @select="appendZone"
+          />
+          <p class="muted court-selection-hint" style="text-align: center">
+            Erster Klick = Startzone, zweiter Klick = Zielzone + Subzone (Richtung) —
+            rückt automatisch weiter, bei Bedarf oben manuell umschaltbar.
+          </p>
+        </div>
       </div>
-
-      <RotationCourt
-        v-if="helperTab === 'rotation'"
-        :home-lineup="current.lineups.home"
-        :away-lineup="current.lineups.away"
-        :home-roster="roster.home"
-        :away-roster="roster.away"
-        :home-label="match.home_team.code"
-        :away-label="match.away_team.code"
-        :serving="current.serving"
-        @save-lineup="correctLineup"
-      />
-      <template v-else>
-        <VolleyballCourt
-          :home-label="match.home_team.code"
-          :away-label="match.away_team.code"
-          @select="appendZone"
-        />
-        <p class="muted" style="text-align: center">
-          Erster Klick = Startzone, zweiter Klick = Zielzone + Subzone (Richtung) —
-          rückt automatisch weiter, bei Bedarf oben manuell umschaltbar.
-        </p>
-      </template>
 
       <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-top: 0.6rem">
         <div>Auszeiten {{ match.home_team.code }}: {{ current.timeouts.home }} · Wechsel: {{ current.substitutions.home }}</div>
