@@ -13,7 +13,9 @@ SQLite in-memory. ORM-Definitionen: `backend/app/models/entities.py`.
 - Initial-Schema: `backend/alembic/versions/0001_initial.py`.
 - `0002_users.py` (Login), `0003_rally_setter_position.py` (Setter-Positionen
   je Ballwechsel für die Rotationsanalyse, Version 2.2), `0004_player_edit_youth_flag.py`
-  (Jugendspieler-Kennzeichnung, Version 2.4).
+  (Jugendspieler-Kennzeichnung, Version 2.4), `0005_scout_action_direction_fields.py`
+  (Subzone/Angriffskombination, Version 2.5), `0006_player_primary_setter.py`
+  (Referenz-Zuspieler fürs Rotationscode, Version 2.5).
 - Im Container laufen Migrationen **automatisch** beim Start
   (`docker-entrypoint.sh`: auf DB warten → `alembic upgrade head` → uvicorn).
 - Neue Migration anlegen: `cd backend && .venv/bin/alembic revision -m "…"`
@@ -61,9 +63,10 @@ Anlage/Passwort-Reset ausschließlich über `./create-user.sh` (keine Registrier
 | team_id | INT FK→teams.id | ON DELETE CASCADE |
 | number | INT | UNIQUE je Team (`uq_player_team_number`) |
 | last_name / first_name | VARCHAR(80) | |
-| position | VARCHAR(20) | Freitext in der Spalte, seit Version 2.4 an der API-Schicht auf ein Enum beschränkt (`Zuspieler`/`Außenangreifer`/`Diagonalangreifer`/`Mittelblocker`/`Libero`) — ältere Freitext-Werte bleiben unverändert |
+| position | VARCHAR(20) | Freitext in der Spalte, seit Version 2.4 an der API-Schicht auf ein Enum beschränkt (`Zuspieler`/`Außenangreifer`/`Diagonalangreifer`/`Mittelblocker`/`Libero`/`Universalspieler`, letzteres seit 2.5) — ältere Freitext-Werte bleiben unverändert |
 | is_libero | BOOL | |
 | is_youth_player | BOOL | Jugendspieler-Kennzeichnung (Migration 0004), reiner Marker ohne Regelprüfung |
+| is_primary_setter | BOOL | Referenz-Zuspieler fürs Rotationscode Z1–Z6 (Migration 0006, Version 2.5) — höchstens einer pro Team, an der API-Schicht durchgesetzt (nicht per DB-Constraint) |
 
 ### `matches`
 | Spalte | Typ | Hinweise |

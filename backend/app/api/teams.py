@@ -81,6 +81,8 @@ def add_player(
     )
     if exists:
         raise HTTPException(409, f"Nummer {data.number} ist im Team bereits vergeben.")
+    if data.is_primary_setter:
+        _clear_other_primary_setters(db, team_id, exclude_player_id=None)
     player = Player(
         team_id=team_id,
         number=data.number,
@@ -89,11 +91,21 @@ def add_player(
         position=data.position or "",
         is_libero=data.is_libero,
         is_youth_player=data.is_youth_player,
+        is_primary_setter=data.is_primary_setter,
     )
     db.add(player)
     db.commit()
     db.refresh(player)
     return player
+
+
+def _clear_other_primary_setters(db: Session, team_id: int, exclude_player_id: int | None) -> None:
+    """Höchstens ein Referenz-Zuspieler pro Team (siehe Player.is_primary_setter)."""
+    query = select(Player).where(Player.team_id == team_id, Player.is_primary_setter.is_(True))
+    if exclude_player_id is not None:
+        query = query.where(Player.id != exclude_player_id)
+    for other in db.scalars(query):
+        other.is_primary_setter = False
 
 
 @router.patch("/{team_id}/players/{player_id}", response_model=PlayerRead)
@@ -114,12 +126,15 @@ def update_player(
     )
     if exists:
         raise HTTPException(409, f"Nummer {data.number} ist im Team bereits vergeben.")
+    if data.is_primary_setter:
+        _clear_other_primary_setters(db, team_id, exclude_player_id=player_id)
     player.number = data.number
     player.last_name = data.last_name
     player.first_name = data.first_name
     player.position = data.position or ""
     player.is_libero = data.is_libero
     player.is_youth_player = data.is_youth_player
+    player.is_primary_setter = data.is_primary_setter
     db.commit()
     db.refresh(player)
     return player

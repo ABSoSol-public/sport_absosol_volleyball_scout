@@ -56,6 +56,29 @@ function playerAt(side, zone) {
   return { number, isLibero: !!player?.is_libero };
 }
 
+// Rotationscode (Z1–Z6): bestimmt durch die aktuelle Zone des Zuspielers, nicht
+// durch einen mitgezählten Index — siehe Recherche/DataVolley. Referenz ist der
+// als "Referenz-Zuspieler" markierte Kaderspieler (nötig bei zwei Zuspielern,
+// z. B. 6-2-System); steht der gerade nicht auf dem Feld (z. B. nach einem
+// Doppelwechsel), fällt die Anzeige auf den tatsächlich aufgestellten
+// Zuspieler zurück — dadurch bildet sie auch eine Rotationsverschiebung durch
+// einen Zuspieler/Diagonal-Doppelwechsel korrekt ab, ohne eigene Zähllogik.
+function setterZone(side) {
+  const roster = rosterFor(side);
+  const lineup = lineupFor(side);
+  const primary = roster.find((p) => p.is_primary_setter);
+  let setterNumber = primary && lineup.includes(primary.number) ? primary.number : undefined;
+  if (setterNumber === undefined) {
+    const onCourtSetter = roster.find(
+      (p) => p.position === "Zuspieler" && lineup.includes(p.number)
+    );
+    setterNumber = onCourtSetter?.number;
+  }
+  if (setterNumber === undefined) return null;
+  const zone = lineup.indexOf(setterNumber) + 1;
+  return zone > 0 ? zone : null;
+}
+
 function startEdit() {
   editLineups.value = { home: [...props.homeLineup], away: [...props.awayLineup] };
   editing.value = true;
@@ -96,6 +119,9 @@ function save(side) {
             title="Aufschlag"
           ></span>
           {{ swapped ? homeLabel : awayLabel }}
+          <small v-if="setterZone(swapped ? 'home' : 'away')" class="rotation-code">
+            Z{{ setterZone(swapped ? "home" : "away") }}
+          </small>
         </div>
         <div class="rotation-half away" :style="gridStyle">
           <div v-for="(row, r) in rows" :key="r" class="rotation-row" :class="{ vertical }">
@@ -145,6 +171,9 @@ function save(side) {
             title="Aufschlag"
           ></span>
           {{ swapped ? awayLabel : homeLabel }}
+          <small v-if="setterZone(swapped ? 'away' : 'home')" class="rotation-code">
+            Z{{ setterZone(swapped ? "away" : "home") }}
+          </small>
         </div>
       </div>
     </div>
@@ -205,6 +234,12 @@ function save(side) {
   padding: 0.3rem 0;
   color: #33475b;
   background: #f4f6f8;
+}
+
+.rotation-code {
+  font-weight: 700;
+  color: #b3202c;
+  margin-left: 0.3rem;
 }
 
 .rotation-half {

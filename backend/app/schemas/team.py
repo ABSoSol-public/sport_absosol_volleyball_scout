@@ -4,13 +4,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class PlayerPosition(str, Enum):
-    """Standard-Positionen (5-1-System), siehe docs/ARCHITEKTUR.md."""
+    """Standard-Positionen (5-1-System) + Universal, siehe docs/ARCHITEKTUR.md."""
 
     SETTER = "Zuspieler"
     OUTSIDE = "Außenangreifer"
     OPPOSITE = "Diagonalangreifer"
     MIDDLE = "Mittelblocker"
     LIBERO = "Libero"
+    UNIVERSAL = "Universalspieler"
 
 
 class PlayerCreate(BaseModel):
@@ -20,6 +21,11 @@ class PlayerCreate(BaseModel):
     position: PlayerPosition | None = None
     is_libero: bool = False
     is_youth_player: bool = False
+    # Referenz-Zuspieler fürs Rotationscode (Z1–Z6): nur relevant, wenn ein Team
+    # zwei Zuspieler im Kader führt (z. B. 6-2-System) — legt fest, wessen
+    # aktuelle Zone den Rotationscode bestimmt. Höchstens einer pro Team
+    # (siehe api/teams.py: Setzen entfernt das Flag beim bisherigen Träger).
+    is_primary_setter: bool = False
 
 
 class PlayerUpdate(BaseModel):
@@ -29,6 +35,7 @@ class PlayerUpdate(BaseModel):
     position: PlayerPosition | None = None
     is_libero: bool = False
     is_youth_player: bool = False
+    is_primary_setter: bool = False
 
 
 class PlayerRead(BaseModel):
@@ -41,6 +48,7 @@ class PlayerRead(BaseModel):
     position: str
     is_libero: bool
     is_youth_player: bool
+    is_primary_setter: bool
 
 
 class TeamCreate(BaseModel):

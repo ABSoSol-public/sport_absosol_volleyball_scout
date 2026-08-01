@@ -2,7 +2,14 @@
 import { onMounted, ref } from "vue";
 import { api } from "../api";
 
-const POSITIONS = ["Zuspieler", "Außenangreifer", "Diagonalangreifer", "Mittelblocker", "Libero"];
+const POSITIONS = [
+  "Zuspieler",
+  "Außenangreifer",
+  "Diagonalangreifer",
+  "Mittelblocker",
+  "Libero",
+  "Universalspieler",
+];
 
 const teams = ref([]);
 const selectedTeam = ref(null);
@@ -13,7 +20,15 @@ const editingTeamId = ref(null);
 const teamEdit = ref({ code: "", name: "" });
 
 function blankPlayer() {
-  return { number: null, last_name: "", first_name: "", position: "", is_libero: false, is_youth_player: false };
+  return {
+    number: null,
+    last_name: "",
+    first_name: "",
+    position: "",
+    is_libero: false,
+    is_youth_player: false,
+    is_primary_setter: false,
+  };
 }
 const newPlayer = ref(blankPlayer());
 const editingPlayerId = ref(null);
@@ -80,6 +95,7 @@ function startEditPlayer(player) {
     position: player.position,
     is_libero: player.is_libero,
     is_youth_player: player.is_youth_player,
+    is_primary_setter: player.is_primary_setter,
   };
 }
 
@@ -154,7 +170,11 @@ onMounted(loadTeams);
     <table>
       <thead>
         <tr>
-          <th>Nr.</th><th>Name</th><th>Position</th><th>Libero</th><th>Jugend</th><th></th>
+          <th>Nr.</th><th>Name</th><th>Position</th><th>Libero</th><th>Jugend</th>
+          <th title="Bestimmt bei zwei Zuspielern im Kader den Rotationscode (Z1–Z6) im Live-Scouting">
+            Ref.-Zuspieler
+          </th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -173,6 +193,7 @@ onMounted(loadTeams);
             </td>
             <td><input v-model="playerEdit.is_libero" type="checkbox" /></td>
             <td><input v-model="playerEdit.is_youth_player" type="checkbox" /></td>
+            <td><input v-model="playerEdit.is_primary_setter" type="checkbox" /></td>
             <td>
               <button @click="savePlayer(player)">Speichern</button>
               <button class="secondary" @click="cancelEditPlayer">Abbrechen</button>
@@ -184,6 +205,7 @@ onMounted(loadTeams);
             <td>{{ player.position }}</td>
             <td>{{ player.is_libero ? "L" : "" }}</td>
             <td>{{ player.is_youth_player ? "J" : "" }}</td>
+            <td>{{ player.is_primary_setter ? "Z" : "" }}</td>
             <td><button class="secondary" @click="startEditPlayer(player)">Bearbeiten</button></td>
           </template>
         </tr>
@@ -226,6 +248,12 @@ onMounted(loadTeams);
       <div class="field-checkbox">
         <input id="new-player-youth" v-model="newPlayer.is_youth_player" type="checkbox" />
         <label for="new-player-youth">Jugendspieler</label>
+      </div>
+      <div class="field-checkbox">
+        <input id="new-player-primary-setter" v-model="newPlayer.is_primary_setter" type="checkbox" />
+        <label for="new-player-primary-setter" title="Bestimmt bei zwei Zuspielern im Kader den Rotationscode (Z1–Z6) im Live-Scouting">
+          Referenz-Zuspieler
+        </label>
       </div>
       <button type="submit">Spieler hinzufügen</button>
     </form>

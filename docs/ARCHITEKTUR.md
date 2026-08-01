@@ -167,13 +167,36 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   `PATCH /api/teams/{id}/players/{id}` ergänzen die bisher fehlende Möglichkeit,
   Teams/Spieler nach der Anlage zu korrigieren (`TeamsView.vue`, Inline-Edit-Modus).
 - **Position als Enum** (`PlayerPosition` in `app/schemas/team.py`): `Zuspieler`,
-  `Außenangreifer`, `Diagonalangreifer`, `Mittelblocker`, `Libero` (Standard-
-  5-Positionen-System) — validiert nur bei neuen Schreibzugriffen (Create/Update);
-  die DB-Spalte bleibt ein einfaches `VARCHAR`, bereits gespeicherte Freitext-Werte
-  werden beim Lesen nicht geprüft.
+  `Außenangreifer`, `Diagonalangreifer`, `Mittelblocker`, `Libero`,
+  `Universalspieler` (Standard-5-Positionen-System + Universal, seit Version 2.5)
+  — validiert nur bei neuen Schreibzugriffen (Create/Update); die DB-Spalte
+  bleibt ein einfaches `VARCHAR`, bereits gespeicherte Freitext-Werte werden
+  beim Lesen nicht geprüft.
 - **`is_youth_player`** (Migration `0004`): reine Kennzeichnung für Spieler mit
   besonderem Status (Höher-/Doppelspielrecht-Regelungen der Landesverbände),
   analog zu `is_libero` — keine Regelprüfung in der Engine.
+- **`is_primary_setter` & Rotationscode Z1–Z6** (Migration `0006`, Version 2.5,
+  Nutzerwunsch: „der Zuspieler bestimmt den Rotationscode, steht er auf
+  Position 1 spricht man von Z1 … bei zwei Zuspielern im Kader muss man den
+  primären auswählen … wichtig wegen 4-2-System und Doppelwechsel
+  Zuspieler/Diagonal, der die Rotation um 3 versetzt"): `Player.is_primary_setter`
+  markiert bei zwei Zuspielern im Kader (z. B. 6-2-System) denjenigen, dessen
+  Zone den Rotationscode bestimmt — höchstens einer pro Team, wird beim Setzen
+  eines neuen automatisch beim bisherigen Träger entfernt
+  (`app/api/teams.py::_clear_other_primary_setters`, kein DB-Constraint, da
+  sich die Rolle im Saisonverlauf ändern kann). Der Rotationscode selbst wird
+  **nicht** in `match_engine.py` berechnet (die Engine bleibt bewusst
+  roster-unabhängig, reines Event-Sourcing über Spielernummern), sondern rein
+  clientseitig in `RotationCourt.vue` (`setterZone()`) aus Kader + aktueller
+  Aufstellung: Zone des Referenz-Zuspielers, sofern der gerade auf dem Feld
+  steht; sonst Fallback auf den tatsächlich aufgestellten Zuspieler (Position
+  „Zuspieler"). Dieser Fallback bildet auch einen Doppelwechsel
+  Zuspieler/Diagonal (der die Rotation im laufenden Satz um 3 Positionen
+  versetzt) korrekt ab, ohne eigene Zähllogik — die Anzeige liest schlicht die
+  tatsächliche Zone ab. Zonen 7/8/9 (Mittelreihe) sind bewusst nie Teil der
+  Rotationsanzeige (nur 6-Zonen-Rotationsraster in `RotationCourt.vue`, siehe
+  oben) — sie dienen laut Nutzervorgabe ausschließlich der Richtungserfassung
+  im Zonen-Helfer (`VolleyballCourt.vue`).
 - **`frontend/src/components/VolleyballCourt.vue`**: Zonen-/Subzonen-Referenz für
   die Live-Scouting-Zoneneingabe, als **vollständiges Feld** (beide Hälften +
   Netz gleichzeitig sichtbar, damit es im Live-Betrieb schnell geht — keine

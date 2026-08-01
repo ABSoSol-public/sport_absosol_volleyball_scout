@@ -68,7 +68,8 @@ Team inkl. Kader:
   "id": 1, "code": "TSV", "name": "TSV Heimstadt",
   "players": [
     { "id": 3, "number": 7, "last_name": "Musterfrau", "first_name": "Erika",
-      "position": "Außenangreifer", "is_libero": false, "is_youth_player": false }
+      "position": "Außenangreifer", "is_libero": false, "is_youth_player": false,
+      "is_primary_setter": false }
   ]
 }
 ```
@@ -83,13 +84,18 @@ mit einem anderen Team, 404 bei unbekannter `team_id`.
 ### `POST /api/teams/{team_id}/players` → 201
 ```json
 { "number": 7, "last_name": "Musterfrau", "first_name": "Erika",
-  "position": "Außenangreifer", "is_libero": false, "is_youth_player": false }
+  "position": "Außenangreifer", "is_libero": false, "is_youth_player": false,
+  "is_primary_setter": false }
 ```
 `number` 0–99, pro Team eindeutig → 409 bei Doppelvergabe. `position` ist optional
 (`null`/weggelassen → leer) und eines von: `Zuspieler`, `Außenangreifer`,
-`Diagonalangreifer`, `Mittelblocker`, `Libero` — 422 bei anderem Wert. Nur eine
-Validierung neuer Einträge; bereits gespeicherte Freitext-Positionen (vor Version 2.4)
-bleiben unverändert und werden beim Lesen nicht geprüft.
+`Diagonalangreifer`, `Mittelblocker`, `Libero`, `Universalspieler` (letzteres seit
+Version 2.5) — 422 bei anderem Wert. Nur eine Validierung neuer Einträge; bereits
+gespeicherte Freitext-Positionen (vor Version 2.4) bleiben unverändert und werden
+beim Lesen nicht geprüft. `is_primary_setter` (seit Version 2.5): markiert bei zwei
+Zuspielern im Kader (z. B. 6-2-System) den für den Rotationscode (Z1–Z6, siehe
+`RotationCourt.vue`) maßgeblichen — höchstens einer pro Team; wird `true` gesetzt,
+verliert der bisherige Träger im selben Team automatisch das Flag.
 
 ### `PATCH /api/teams/{team_id}/players/{player_id}`
 Gleiches Body-Schema wie beim Anlegen (vollständiger Ersatz). 409 bei Nummern-Konflikt

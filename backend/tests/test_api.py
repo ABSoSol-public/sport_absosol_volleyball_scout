@@ -106,6 +106,37 @@ def test_player_update(client: TestClient) -> None:
     )
 
 
+def test_player_accepts_universal_position(client: TestClient) -> None:
+    team_id = client.post("/api/teams", json={"code": "UNI", "name": "Universalteam"}).json()["id"]
+    response = client.post(
+        f"/api/teams/{team_id}/players",
+        json={"number": 1, "last_name": "Test", "position": "Universalspieler"},
+    )
+    assert response.status_code == 201
+    assert response.json()["position"] == "Universalspieler"
+
+
+def test_primary_setter_is_exclusive_per_team(client: TestClient) -> None:
+    team_id = client.post("/api/teams", json={"code": "SET", "name": "Zuspielteam"}).json()["id"]
+    setter_a = client.post(
+        f"/api/teams/{team_id}/players",
+        json={"number": 1, "last_name": "Erste", "position": "Zuspieler", "is_primary_setter": True},
+    ).json()
+    assert setter_a["is_primary_setter"] is True
+
+    setter_b = client.post(
+        f"/api/teams/{team_id}/players",
+        json={"number": 2, "last_name": "Zweite", "position": "Zuspieler", "is_primary_setter": True},
+    ).json()
+    assert setter_b["is_primary_setter"] is True
+
+    # Das Setzen des zweiten Referenz-Zuspielers entzieht dem ersten das Flag —
+    # höchstens einer pro Team, siehe app/api/teams.py::_clear_other_primary_setters.
+    refreshed_a = client.get(f"/api/teams/{team_id}").json()["players"]
+    a_now = next(p for p in refreshed_a if p["id"] == setter_a["id"])
+    assert a_now["is_primary_setter"] is False
+
+
 def test_live_scouting_flow(client: TestClient) -> None:
     match_id = _create_match(client)
 

@@ -54,6 +54,12 @@ class Player(Base):
     # Sonderstellung Jugendspieler (Höherspielrecht/Doppelspielrecht-Regelungen der
     # Landesverbände) — reine Kennzeichnung, keine Regelprüfung in der Engine.
     is_youth_player: Mapped[bool] = mapped_column(default=False)
+    # Referenz-Zuspieler für den Rotationscode (Z1–Z6 nach dessen aktueller Zone,
+    # siehe docs/ARCHITEKTUR.md) — nur bei zwei Zuspielern im Kader (z. B.
+    # 6-2-System) nötig, um die Mehrdeutigkeit aufzulösen. Höchstens einer pro
+    # Team; wird in app/api/teams.py durchgesetzt (nicht per DB-Constraint, da
+    # sich die Rolle im Saisonverlauf ändern kann).
+    is_primary_setter: Mapped[bool] = mapped_column(default=False)
 
     team: Mapped[Team] = relationship(back_populates="players")
 
