@@ -325,6 +325,45 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
     bevorzugte (intrinsische) Breite der ganzen Karte aufbläht und das
     Nebeneinander verhindert. Die jetzt ungenutzten `details.card`-CSS-Regeln
     in `styles.css` wurden durch `.field-helpers`/`.field-helper` ersetzt.
+- **Gemeinsame Dreh-/Seitenwechsel-Steuerung + echte 90°-Drehung** (Roadmap 2.5,
+  Nutzerfeedback: „guck, dass die Buttons Drehen und Seitenwechsel immer für
+  beide Grafiken gelten" + „in der Horizontalsicht ist Position 1 falsch
+  gesetzt … links unten links, rechts oben rechts … dazwischen immer die 7 bei
+  der Richtungsview" + „in der Vertikalsicht ist es bei beiden Grafiken
+  richtig"):
+  - **`vertical`/`swapped` von beiden Komponenten zu Props umgebaut**: lagen
+    vorher als eigene, unabhängige `ref()`s in `RotationCourt.vue` bzw.
+    `VolleyballCourt.vue` (mit eigenen Dreh-/Seitenwechsel-Buttons je
+    Komponente) — jetzt als Props deklariert, Zustand lebt zentral in
+    `LiveScoutView.vue` (`helperVertical`/`helperSwapped`) und wird über einen
+    einzigen gemeinsamen Toolbar (`.helper-shared-toolbar`, oberhalb von
+    `.field-helpers`) gesteuert. `VolleyballCourt.vue` bekam dabei die
+    `swapped`-Prop komplett neu (vorher gab es dort keinen Seitenwechsel) —
+    da die Zellliste teamunabhängig ist (Zonen sind symmetrisch), tauschen bei
+    `swapped` nur die Team-Label-Texte, nicht die Zellen/CSS-Klassen.
+  - **`transpose()` war keine echte 90°-Drehung** — nur eine Spiegelung an der
+    Hauptdiagonale. Das blieb lange unbemerkt, weil die Netzreihen-
+    Spaltenzuordnung (welche Spalte an der Netzleiste liegt) dadurch zufällig
+    schon korrekt war; erst als der Nutzer die exakte Position-1-Platzierung
+    beschrieb („links unten links, rechts oben rechts, dazwischen die 7"),
+    fiel auf, dass die Zeilenreihenfolge (oben/unten) noch falsch war. Neue
+    Funktion `rotate90()` in `court-grid.js` (`transpose(matrix).reverse()`)
+    liefert die tatsächliche 90°-Drehung; die Spaltenzuordnung (Netzreihe
+    netzseitig) bleibt davon unberührt, da `.reverse()` nur die Zeilen-, nicht
+    die Spaltenreihenfolge ändert — anhand der konkreten Zellindizes
+    durchgerechnet und gegen die Nutzerbeschreibung verifiziert, nicht nur
+    optisch geschätzt. `RotationCourt.vue`/`VolleyballCourt.vue` nutzen jetzt
+    `rotate90()` statt `transpose()`.
+- **Scout-Codes-Eingabe als fixer Anker** (Roadmap 2.5, Nutzerwunsch: „die
+  Scout-Code-Eingabezeile soll unter dem Punktestand als fixer Anker
+  eingebettet sein und nicht mitscrollen, das ist der Haupteingabepunkt, die
+  Punkteansicht darf gerne etwas kleiner sein"): das Eingabefeld ist aus der
+  „Laufender Satz"-Karte herausgelöst und sitzt jetzt in einer eigenen
+  `.scout-code-anchor`-Sektion direkt unter dem Scoreboard, mit
+  `position: sticky; top: 0` — bleibt beim Scrollen durch Rotations-/
+  Zonen-Helfer sichtbar, statt mit der Karte mitzuscrollen. `.scoreboard
+  .points` (die große Punktezahl) von `3rem` auf `2rem` verkleinert, um dem
+  jetzt permanent sichtbaren Eingabefeld mehr Platz einzuräumen.
 
 ## Konfiguration
 

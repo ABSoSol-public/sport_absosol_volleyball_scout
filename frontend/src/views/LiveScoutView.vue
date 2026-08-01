@@ -23,6 +23,13 @@ const lineupSelection = ref({ home: blankLineup(), away: blankLineup() });
 const actionCodes = ref("");
 const sub = ref({ side: "home", player_out: null, player_in: null });
 
+// "90°" (Netzausrichtung) und "Seitenwechsel" (welches Team wo angezeigt wird)
+// gelten für Rotations- und Zonen-Helfer gemeinsam (Nutzerfeedback: „die
+// Buttons drehen und Seitenwechsel müssen immer für beide Grafiken gelten") —
+// daher hier zentral statt je Komponente einzeln gehalten.
+const helperVertical = ref(false);
+const helperSwapped = ref(false);
+
 // VolleyballCourt entscheidet selbst (auto-fortschreitend), ob ein Klick gerade
 // Start- oder Zielzone meint, und liefert das per `target` mit.
 function appendZone(selection) {
@@ -177,6 +184,21 @@ onMounted(refresh);
       </div>
     </div>
 
+    <!-- Haupteingabepunkt: bleibt beim Scrollen sichtbar, statt mit den
+         Feld-Helfern weiter unten mitzuscrollen. -->
+    <div v-if="setRunning" class="scout-code-anchor">
+      <div class="field">
+        <label for="action-codes">Scout-Codes (optional)</label>
+        <input
+          id="action-codes"
+          v-model="actionCodes"
+          placeholder="z. B. 5SQ- a11RQ+ a14AH#"
+          style="width: 100%"
+          @keyup.enter="null"
+        />
+      </div>
+    </div>
+
     <!-- Satz starten -->
     <div v-if="!setRunning && !state.match_finished" class="card">
       <h2>Satz {{ state.set_scores.length + 1 }} starten</h2>
@@ -216,10 +238,20 @@ onMounted(refresh);
 
     <!-- Laufender Satz -->
     <div v-if="setRunning" class="card">
+      <div class="helper-shared-toolbar">
+        <button type="button" class="secondary" @click="helperVertical = !helperVertical">
+          ⟳ 90° drehen
+        </button>
+        <button type="button" class="secondary" @click="helperSwapped = !helperSwapped">
+          ⇄ Seitenwechsel
+        </button>
+      </div>
       <div class="field-helpers">
         <div class="field-helper">
           <h3 class="field-helper-title">Rotation</h3>
           <RotationCourt
+            :vertical="helperVertical"
+            :swapped="helperSwapped"
             :home-lineup="current.lineups.home"
             :away-lineup="current.lineups.away"
             :home-roster="roster.home"
@@ -233,6 +265,8 @@ onMounted(refresh);
         <div class="field-helper">
           <h3 class="field-helper-title">Zonen & Richtung</h3>
           <VolleyballCourt
+            :vertical="helperVertical"
+            :swapped="helperSwapped"
             :home-label="match.home_team.code"
             :away-label="match.away_team.code"
             @select="appendZone"
@@ -247,19 +281,6 @@ onMounted(refresh);
       <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-top: 0.6rem">
         <div>Auszeiten {{ match.home_team.code }}: {{ current.timeouts.home }} · Wechsel: {{ current.substitutions.home }}</div>
         <div>Auszeiten {{ match.away_team.code }}: {{ current.timeouts.away }} · Wechsel: {{ current.substitutions.away }}</div>
-      </div>
-
-      <div class="form-row" style="margin-top: 1rem">
-        <div class="field" style="flex: 1">
-          <label for="action-codes">Scout-Codes (optional)</label>
-          <input
-            id="action-codes"
-            v-model="actionCodes"
-            placeholder="z. B. 5SQ- a11RQ+ a14AH#"
-            style="width: 100%"
-            @keyup.enter="null"
-          />
-        </div>
       </div>
 
       <div class="actions-bar">

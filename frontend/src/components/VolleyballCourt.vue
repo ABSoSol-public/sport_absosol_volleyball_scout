@@ -1,10 +1,14 @@
 <script setup>
 import { computed, ref } from "vue";
-import { transpose } from "../lib/court-grid.js";
+import { rotate90 } from "../lib/court-grid.js";
 
 const props = defineProps({
   homeLabel: { type: String, default: "Heim" },
   awayLabel: { type: String, default: "Gast" },
+  // "90°"/"Seitenwechsel" werden vom Elternteil gesteuert (gemeinsam mit dem
+  // Rotations-Helfer, Nutzerwunsch: „Buttons müssen für beide Grafiken gelten").
+  vertical: { type: Boolean, default: false },
+  swapped: { type: Boolean, default: false },
 });
 const emit = defineEmits(["select"]);
 
@@ -103,11 +107,11 @@ function isSelected(cell, selection) {
 
 // "90°": dieselbe Umschaltung horizontal/vertikal wie beim Rotations-Helfer
 // (RotationCourt.vue) — Netz läuft waagerecht bzw. senkrecht. Das 6x6-Raster
-// bleibt quadratisch in beiden Fällen, nur transponiert (siehe court-grid.js);
-// eine Randlinie, die horizontal unten lag (border-bottom), liegt nach dem
-// Transponieren an derselben Zelle rechts (border-right) und umgekehrt.
-const vertical = ref(false);
-const activeGrid = computed(() => (vertical.value ? transpose(cells.value) : cells.value));
+// bleibt quadratisch in beiden Fällen, nur um 90° gedreht (`rotate90()`,
+// court-grid.js); eine Randlinie, die horizontal unten lag (border-bottom),
+// liegt nach der Drehung an derselben Zelle rechts (border-right) und
+// umgekehrt (Spaltenreihenfolge bleibt unberührt, siehe rotate90()-Doku).
+const activeGrid = computed(() => (props.vertical ? rotate90(cells.value) : cells.value));
 
 const STRONG_LINE = "2px solid #fff";
 const WEAK_LINE = "1px dashed rgba(255, 255, 255, 0.45)";
@@ -119,7 +123,7 @@ const WEAK_LINE_COL = "1px dashed rgba(255, 255, 255, 0.3)";
 // (border-right) — und umgekehrt für colLine. Empirisch anhand der
 // transponierten Zellindizes durchgerechnet (siehe PROGRESS.md), nicht geraten.
 function cellLineStyle(cell) {
-  if (vertical.value) {
+  if (props.vertical) {
     return {
       borderRight: cell.attackLine ? STRONG_LINE : cell.zoneLine ? WEAK_LINE : undefined,
       borderBottom: cell.colLine ? WEAK_LINE_COL : undefined,
@@ -149,9 +153,13 @@ function cellLineStyle(cell) {
       >
         Zielzone (+ Richtung)
       </button>
-      <button type="button" class="secondary" @click="vertical = !vertical">⟳ 90° drehen</button>
     </div>
 
+    <!-- Die Zellliste ist teamunabhängig (Zonen sind symmetrisch) — "away"/"home"
+         in den Klassen unten bezeichnen nur die physische Position (oben/unten
+         bzw. links/rechts je Ausrichtung, für die 180°-Drehung), nicht welches
+         Team dort angezeigt wird. Bei "Seitenwechsel" (swapped) tauschen nur
+         die Team-Label-Texte, nicht die Zellen/Klassen. -->
     <div ref="courtRef" class="full-court" :class="{ vertical }">
       <svg
         v-if="startPoint && endPoint"
@@ -183,7 +191,7 @@ function cellLineStyle(cell) {
         />
       </svg>
       <div class="court-half-wrap">
-        <div class="team-label">{{ awayLabel }}</div>
+        <div class="team-label">{{ swapped ? homeLabel : awayLabel }}</div>
         <div class="court-half away">
           <template v-for="(row, r) in activeGrid" :key="r">
             <button
@@ -229,7 +237,7 @@ function cellLineStyle(cell) {
             </button>
           </template>
         </div>
-        <div class="team-label">{{ homeLabel }}</div>
+        <div class="team-label">{{ swapped ? awayLabel : homeLabel }}</div>
       </div>
     </div>
 

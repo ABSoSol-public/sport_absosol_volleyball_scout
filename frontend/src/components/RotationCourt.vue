@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
-import { transpose } from "../lib/court-grid.js";
+import { rotate90 } from "../lib/court-grid.js";
 
 const props = defineProps({
   homeLineup: { type: Array, default: () => [] }, // [Zone1..Zone6]
@@ -10,6 +10,10 @@ const props = defineProps({
   homeLabel: { type: String, default: "Heim" },
   awayLabel: { type: String, default: "Gast" },
   serving: { type: String, default: null }, // "home" | "away" | null
+  // "90°"/"Seitenwechsel" werden vom Elternteil gesteuert (gemeinsam mit dem
+  // Zonen-Helfer, Nutzerwunsch: „Buttons müssen für beide Grafiken gelten").
+  vertical: { type: Boolean, default: false },
+  swapped: { type: Boolean, default: false },
 });
 const emit = defineEmits(["save-lineup"]);
 
@@ -17,27 +21,19 @@ const emit = defineEmits(["save-lineup"]);
 // Grundlinie 5-6-1 im hinteren 6-m-Band — Netzreihe/Grundlinie daher bewusst
 // 1:2 statt 1:1 in der Rasterhöhe, siehe Recherche/CSS). Vertikale Ausrichtung
 // (Netz läuft senkrecht statt waagerecht) ist dieselbe Rotation um 90°, per
-// Matrixformel abgeleitet (transpose + Spiegeln), nicht von Hand geraten.
+// `rotate90()` (court-grid.js) abgeleitet, nicht von Hand geraten.
 const HORIZONTAL_ROWS = [
   [4, 3, 2],
   [5, 6, 1],
 ];
-const VERTICAL_ROWS = transpose(HORIZONTAL_ROWS);
-
-// "90°": DataVolleys eigener `ROT`-Befehl schaltet die Rotationsanzeige
-// zwischen horizontal/vertikal um (kein freier Winkel) — siehe
-// ../../../../recherche/Data_Volley_4_Funktionsanalyse.md Abschnitt 4.2.
-const vertical = ref(false);
-// "INV": welches Team auf welcher Seite angezeigt wird, unabhängig von der
-// Ausrichtung — für den eigenen Sitzplatz/Seitenwechsel im echten Spiel.
-const swapped = ref(false);
+const VERTICAL_ROWS = rotate90(HORIZONTAL_ROWS);
 
 const editing = ref(false);
 const editLineups = ref({ home: [], away: [] });
 
-const rows = computed(() => (vertical.value ? VERTICAL_ROWS : HORIZONTAL_ROWS));
+const rows = computed(() => (props.vertical ? VERTICAL_ROWS : HORIZONTAL_ROWS));
 const gridStyle = computed(() =>
-  vertical.value
+  props.vertical
     ? { gridTemplateColumns: "1fr 2fr", gridTemplateRows: `repeat(${rows.value.length}, 1fr)` }
     : { gridTemplateColumns: `repeat(${rows.value[0].length}, 1fr)`, gridTemplateRows: "1fr 2fr" }
 );
@@ -102,8 +98,6 @@ function save(side) {
 <template>
   <div class="rotation-court" :style="{ width: vertical ? '38rem' : '20rem' }">
     <div class="rotation-toolbar">
-      <button type="button" class="secondary" @click="vertical = !vertical">⟳ 90° drehen</button>
-      <button type="button" class="secondary" @click="swapped = !swapped">⇄ Seitenwechsel</button>
       <button v-if="!editing" type="button" class="secondary" @click="startEdit">
         Aufstellung korrigieren
       </button>
