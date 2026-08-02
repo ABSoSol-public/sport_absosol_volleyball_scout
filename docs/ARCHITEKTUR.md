@@ -463,17 +463,23 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
      der Klickpfad das Heim-Präfix weg (galt nur implizit per Parser-Default);
      die Direkteingabe/`parse_action`/`parse_action_lenient` akzeptieren
      weiterhin auch fehlendes Präfix (Default „home"), das bleibt unverändert.
-  2. Skill „Aufschlag" bekommt einen eigenen Kombi-Ablauf statt Typ+Wertung:
-     Start-/Ziel-Zone (1–9, direkt nach `S`), dann entweder **„Fehler
-     (Netz/Aus)"** (baut `<präfix><nr>S=<zonen>` — Wertung direkt nach dem
-     Skill-Buchstaben, dadurch weiterhin von der bestehenden strikten
-     `parse_action`-Grammatik lesbar) oder eine **Annahme-Kombination**:
-     Annahme-Spieler (immer aus dem Kader der **Gegenseite** — `opponents`
-     als Komplement zu `side`, kein neuer Kader-Abgleich nötig) + eine von
-     fünf Annahme-Wertungen (`= - / # +`, bewusst **ohne** `!` — kommt in den
-     Domänenregeln für Aufschlag/Annahme nicht vor), baut
-     `<präfix><nr>S<zonen>.<annahmeSpieler><annahmeWertung>`. Die eigentliche
-     Aufschlagbewertung wird laut Nutzerregel **nicht** in den Code
+  2. Skill „Aufschlag" bekommt einen eigenen Kombi-Ablauf statt Typ+Wertung
+     — DataVolley selbst nennt das Konstrukt **„Compound Code"**, per
+     Web-Recherche (thevolleyballanalyst.com) gegen ein echtes Beispiel
+     verifiziert (`1SQ16.5=`: Spieler 1, Aufschlag Typ `Q`, Zone 1→6, „."-
+     Trenner, Spieler 5 nimmt an, Wertung `=`) — dabei fiel auf, dass Typ
+     (Sprung-/Flatteraufschlag etc.) auch beim Aufschlag vorkommt und direkt
+     nach `S`, vor den Zonen steht; entsprechend eigener Typ-Schritt auch im
+     Aufschlag-Zweig ergänzt: Typ (optional) → Start-/Ziel-Zone (1–9), dann
+     entweder **„Fehler (Netz/Aus)"** (baut `<präfix><nr>S<typ?>=<zonen>` —
+     Wertung direkt nach Skill+Typ, dadurch weiterhin von der bestehenden
+     strikten `parse_action`-Grammatik lesbar) oder eine **Annahme-
+     Kombination**: Annahme-Spieler (immer aus dem Kader der **Gegenseite** —
+     `opponents` als Komplement zu `side`, kein neuer Kader-Abgleich nötig) +
+     eine von fünf Annahme-Wertungen (`= - / # +`, bewusst **ohne** `!` —
+     kommt in den Domänenregeln für Aufschlag/Annahme nicht vor), baut
+     `<präfix><nr>S<typ?><zonen>.<annahmeSpieler><annahmeWertung>`. Die
+     eigentliche Aufschlagbewertung wird laut Nutzerregel **nicht** in den Code
      geschrieben, sondern ist über eine feste Tabelle nur implizit (Annahme
      `=`→Aufschlag `#`, `-`→`+`, `/`→`/`, `#`/`+`→`-`) — als Tooltip auf den
      Annahme-Wertungs-Buttons angezeigt, nicht Teil des gespeicherten Strings.

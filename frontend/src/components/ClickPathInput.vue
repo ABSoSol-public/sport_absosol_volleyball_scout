@@ -9,22 +9,29 @@ import { computed, ref } from "vue";
 // clicked afterwards attach directly to this chunk, no separator needed.
 //
 // Serve (S) is special-cased into its own combination-code sub-flow, per
-// domain rules from the user (2026-08-02):
+// domain rules from the user (2026-08-02) — this is what DataVolley itself
+// calls a "compound code" (verified against thevolleyballanalyst.com's
+// worked example "1SQ16.5=": player 1 serves type Q from zone 1 to zone 6,
+// "." separates it from player 5's reception, rated "="):
 // - Home actions always start with "*", away always with lowercase "a" (no
 //   omitted prefix, unlike the lenient direct-entry parser which still
 //   defaults a bare number to home).
 // - A serve's own evaluation is *not* written directly — DataVolley encodes
-//   the serve-reception pair as "<server>S<startZone><endZone>.<receiver>
-//   <receptionEval>", where the trailing evaluation character rates the
-//   RECEPTION (as actually observed), and the serve's own quality is only
-//   implied by a fixed mapping: reception "=" (ace/no play) <-> serve "#";
-//   reception "-" <-> serve "+"; reception "/" <-> serve "/"; reception "#"
-//   or "+" <-> serve "-" (scout picks whichever matches the real reception).
-//   A serve that never reaches the opponent (net/out) has no receiver at
-//   all and is just "<server>S<startZone><endZone>=".
+//   the serve-reception pair as "<server>S<hitType?><startZone><endZone>.
+//   <receiver><receptionEval>", where the trailing evaluation character
+//   rates the RECEPTION (as actually observed), and the serve's own quality
+//   is only implied by a fixed mapping: reception "=" (ace/no play) <->
+//   serve "#"; reception "-" <-> serve "+"; reception "/" <-> serve "/";
+//   reception "#" or "+" <-> serve "-" (scout picks whichever matches the
+//   real reception). A serve that never reaches the opponent (net/out) has
+//   no receiver at all and is just "<server>S<hitType?>=<startZone><endZone>".
 // - When unsure what really happened, "+" is always a safe default rating
 //   (used as a generic placeholder) — so there's no separate "no rating"
 //   button, "+" already covers that case.
+// - Known limitation: the backend parser (scout_code.py) doesn't decompose
+//   the "." compound form yet — it's kept as a raw-text fallback in the
+//   history log for now (parse_action_lenient), not a scope call made
+//   lightly here, see docs/ARCHITEKTUR.md and PROGRESS.md session 30 for why.
 const props = defineProps({
   homeLabel: { type: String, default: "Heim" },
   awayLabel: { type: String, default: "Gast" },
@@ -76,7 +83,7 @@ const prefix = computed(() => (side.value === "away" ? "a" : "*"));
 const previewCode = computed(() => {
   if (!side.value || !playerNumber.value) return "";
   if (isServe.value) {
-    return `${prefix.value}${playerNumber.value}S${startZone.value ?? ""}${endZone.value ?? ""}`;
+    return `${prefix.value}${playerNumber.value}S${hitType.value ?? ""}${startZone.value ?? ""}${endZone.value ?? ""}`;
   }
   return `${prefix.value}${playerNumber.value}${skill.value ?? ""}${hitType.value ?? ""}`;
 });
@@ -140,15 +147,17 @@ function finish(evaluation) {
 // zones after that) and — unlike the reception combo below — parses cleanly
 // with the existing strict grammar.
 function finishServeFault() {
-  const code = `${prefix.value}${playerNumber.value}S=${startZone.value ?? ""}${endZone.value ?? ""}`;
+  const code = `${prefix.value}${playerNumber.value}S${hitType.value ?? ""}=${startZone.value ?? ""}${endZone.value ?? ""}`;
   emit("append", code);
   reset();
 }
 
 // Serve reached the opponent — reception combo with the observed reception
 // evaluation (the serve's own rating is only implied, see header comment).
+// Hit type (jump/float serve etc.) sits right after "S", before the zones —
+// verified against a real DataVolley compound-code example ("1SQ16.5=").
 function finishServeReception(receptionEval) {
-  const code = `${prefix.value}${playerNumber.value}S${startZone.value ?? ""}${endZone.value ?? ""}.${receiverNumber.value}${receptionEval}`;
+  const code = `${prefix.value}${playerNumber.value}S${hitType.value ?? ""}${startZone.value ?? ""}${endZone.value ?? ""}.${receiverNumber.value}${receptionEval}`;
   emit("append", code);
   reset();
 }
@@ -211,6 +220,19 @@ defineExpose({ reset });
     </div>
 
     <template v-if="isServe">
+      <div class="clickpath-row">
+        <span class="clickpath-label">Typ (optional)</span>
+        <button
+          v-for="t in HIT_TYPES"
+          :key="t"
+          type="button"
+          :class="{ secondary: hitType !== t }"
+          @click="selectHitType(t)"
+        >
+          {{ t }}
+        </button>
+      </div>
+
       <div class="clickpath-row">
         <span class="clickpath-label">Start-Zone</span>
         <button
