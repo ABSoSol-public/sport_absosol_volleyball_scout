@@ -218,6 +218,18 @@ nav.topnav a:hover {
   margin: 0;
 }
 
+.scout-code-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.scout-code-confirmed {
+  margin: 0.4rem 0 0;
+  color: #1c7c3f;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 /* Two-column live layout: input on the left (scoreboard, anchor, field
    helpers, actions), the history log permanently on the right. Stacks below
    1100px, since the history log would otherwise get too narrow for its many

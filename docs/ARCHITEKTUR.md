@@ -443,6 +443,19 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   Zonen-Helfer sichtbar, statt mit der Karte mitzuscrollen. `.scoreboard
   .points` (die große Punktezahl) von `3rem` auf `2rem` verkleinert, um dem
   jetzt permanent sichtbaren Eingabefeld mehr Platz einzuräumen.
+- **Bestätigen-Button + Enter-Feedback am Scout-Codes-Feld** (2026-08-02,
+  Nutzerfeedback: „ich kann den eingetragenen Code nicht absenden bzw.
+  bestätigen, da es kein Bestätigen- oder Enter- oder Eintragen-Button
+  gibt" — `@keyup.enter="null"` war ein wirkungsloser Platzhalter): neuer
+  Button „Bestätigen" neben dem Eingabefeld, Enter im Feld löst dieselbe
+  Funktion aus (`confirmScoutCodes` in `LiveScoutView.vue`). Bewusst **reines
+  Komfort-Feedback** (kurzer grüner Hinweistext „✓ Code(s) erfasst …", 1,8s
+  sichtbar) laut expliziter Nutzerentscheidung (Rückfrage mit drei Optionen:
+  nur Feedback / sofort ans Backend senden / Enter = Punkt fürs zuletzt
+  aktive Team) — ändert **nichts** an der bestehenden Persistenzlogik:
+  Scout-Codes werden weiterhin ausschließlich zusammen mit dem
+  Ballwechsel-Gewinner über „+ Punkt Heim/Gast" gesendet
+  (`POST …/live/rally`). Deaktiviert bei leerem Eingabefeld.
 - **Rechter Historylog, aufgedröselt + nachbearbeitbar** (Roadmap 2.6,
   Nutzerwunsch: „auf der rechten Seite ein tabellarischer Historylog mit
   aufgedröseltem Scout-Code und Zeitstempel der Eingabe … orientiere dich an

@@ -24,6 +24,23 @@ const lineupSelection = ref({ home: blankLineup(), away: blankLineup() });
 const actionCodes = ref("");
 const sub = ref({ side: "home", player_out: null, player_in: null });
 
+// Confirm/Enter on the scout-codes field: comfort feedback only (Nutzerwunsch,
+// 2026-08-02) — it does NOT send anything to the backend by itself. Codes
+// still only get persisted together with the rally's winner via "+ Punkt
+// Heim/Gast", unchanged; this just visibly acknowledges what's staged so far,
+// since typing/click-path had no feedback loop before a point was awarded.
+const scoutCodesConfirmed = ref(false);
+let scoutCodesConfirmedTimeout = null;
+
+function confirmScoutCodes() {
+  if (!actionCodes.value.trim()) return;
+  scoutCodesConfirmed.value = true;
+  clearTimeout(scoutCodesConfirmedTimeout);
+  scoutCodesConfirmedTimeout = setTimeout(() => {
+    scoutCodesConfirmed.value = false;
+  }, 1800);
+}
+
 // Right-hand history log: scout code broken down per action + entry
 // timestamp, modeled on the Data-Volley `[3SCOUT]` row (time, set, zone,
 // code per action) — see `docs/DVW-FORMAT.md` section 2.12. Editable, since
@@ -378,13 +395,26 @@ onMounted(refresh);
     <div v-if="setRunning" class="scout-code-anchor">
       <div class="field">
         <label for="action-codes">Scout-Codes (optional)</label>
-        <input
-          id="action-codes"
-          v-model="actionCodes"
-          placeholder="z. B. 5SQ- a11RQ+ a14AH#"
-          style="width: 100%"
-          @keyup.enter="null"
-        />
+        <div class="scout-code-input-row">
+          <input
+            id="action-codes"
+            v-model="actionCodes"
+            placeholder="z. B. 5SQ- a11RQ+ a14AH#"
+            style="width: 100%"
+            @keyup.enter="confirmScoutCodes"
+          />
+          <button
+            type="button"
+            class="secondary"
+            :disabled="!actionCodes.trim()"
+            @click="confirmScoutCodes"
+          >
+            Bestätigen
+          </button>
+        </div>
+        <p v-if="scoutCodesConfirmed" class="scout-code-confirmed">
+          ✓ Code(s) erfasst — mit „+ Punkt Heim/Gast" unten abschließen.
+        </p>
       </div>
     </div>
 
