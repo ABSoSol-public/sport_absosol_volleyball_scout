@@ -13,6 +13,6 @@ export default createRouter({
     { path: "/teams", component: TeamsView },
     { path: "/matches", component: MatchesView },
     { path: "/matches/:id", component: MatchDetailView, props: true },
-    { path: "/matches/:id/live", component: LiveScoutView, props: true },
+    { path: "/matches/:id/live", component: LiveScoutView, props: true, meta: { wide: true } },
   ],
 });

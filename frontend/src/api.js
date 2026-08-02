@@ -80,4 +80,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  liveHistory: (matchId) => request(`/matches/${matchId}/live/history`),
+  correctHistoryActions: (matchId, seq, data) =>
+    request(`/matches/${matchId}/live/history/${seq}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };

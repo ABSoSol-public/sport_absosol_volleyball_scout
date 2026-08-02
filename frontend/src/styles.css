@@ -18,6 +18,12 @@ main {
   padding: 1rem;
 }
 
+/* Live scouting needs more width than other views: field helpers + the
+   right-hand history log side by side. */
+main.main-wide {
+  max-width: 1400px;
+}
+
 nav.topnav {
   background: #b3202c;
   color: #fff;
@@ -210,6 +216,86 @@ nav.topnav a:hover {
 
 .scout-code-anchor .field {
   margin: 0;
+}
+
+/* Two-column live layout: input on the left (scoreboard, anchor, field
+   helpers, actions), the history log permanently on the right. Stacks below
+   1100px, since the history log would otherwise get too narrow for its many
+   columns. */
+.live-layout {
+  display: flex;
+  gap: 1.2rem;
+  align-items: flex-start;
+}
+
+.live-main {
+  flex: 3 1 0;
+  min-width: 0;
+}
+
+.live-history-panel {
+  flex: 2 1 22rem;
+  min-width: 22rem;
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+@media (max-width: 1100px) {
+  .live-layout {
+    flex-direction: column;
+  }
+
+  .live-history-panel {
+    position: static;
+    max-height: none;
+    width: 100%;
+  }
+}
+
+.history-table-wrap {
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.history-table th,
+.history-table td {
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #e5e9ed;
+}
+
+.history-row-event td {
+  background: #f4f6f8;
+  font-style: italic;
+}
+
+.history-row-first {
+  border-top: 2px solid #d7dde3;
+}
+
+.history-edit-btn {
+  padding: 0.1rem 0.5rem;
+  line-height: 1;
+}
+
+.history-row-edit td {
+  white-space: normal;
+  background: #fbf3d9;
+  padding: 0.6rem 0.5rem;
+}
+
+.history-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
 }
 
 .serve-dot {

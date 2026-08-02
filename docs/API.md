@@ -291,6 +291,45 @@ standen — reine Korrektur einer falsch erfassten Aufstellung/Rotation (z. B.
 verpasste Seitenwechsel-Rotation), analog zum `LINEUP`-Befehl bzw. den
 „Ganzteam-Rotation"-Pfeilen vergleichbarer Scouting-Tools.
 
+### `GET …/live/history`
+Chronologischer Verlauf **aller** Events (nicht nur `rally`), für den
+Historylog im Frontend (`LiveScoutView.vue`, rechte Spalte). Jeder Eintrag
+trägt zusätzlich zum rohen `payload` den Punktestand direkt nach diesem Event
+(inkrementelles Replay, siehe `docs/ARCHITEKTUR.md`) sowie bei `rally`-Events
+die bereits aufgedröselten Scout-Codes:
+```json
+[
+  {
+    "seq": 3, "event_type": "rally", "created_at": "2026-08-02T21:24:29.123456",
+    "set_number": 1, "home_score": 1, "away_score": 0, "winner": "home",
+    "payload": { "winner": "home", "actions": [ { "raw_code": "5SQ-", "side": "home",
+      "player_number": 5, "skill": "S", "hit_type": null, "evaluation": "-",
+      "start_zone": null, "end_zone": null, "subzone": null } ] },
+    "actions": [ { "raw_code": "5SQ-", "side": "home", "player_number": 5,
+      "skill": "S", "hit_type": null, "evaluation": "-", "start_zone": null,
+      "end_zone": null, "subzone": null } ]
+  }
+]
+```
+Für andere `event_type`-Werte (`start_set`, `substitution`, `timeout`,
+`correct_lineup`) fehlen `winner`/`actions`, das Frontend baut sich daraus
+einen Beschreibungstext (z. B. „Wechsel Heim: 7 → 19").
+
+### `PATCH …/live/history/{seq}`
+Nachträgliche Korrektur der Scout-Codes eines bereits erfassten Ballwechsels
+(„nachbearbeitbare tabellarische Ansicht", Nutzerwunsch — Tippfehler im
+laufenden Spiel fallen oft erst später auf):
+```json
+{ "actions": ["5SQ-", "a11RQ+", "a17AH#"] }
+```
+Ersetzt die komplette Aktionsliste des Ballwechsels `seq` (gleiches Codeformat
+wie bei `/live/rally`, ungültige Codes → 422). Ändert bewusst **nur** die
+Beschreibung, nicht `winner`/Punktestand/Rotation — die hängen ausschließlich
+an `winner`, das unangetastet bleibt, ein Replay ist für diese Korrektur also
+nicht nötig. 404, wenn `seq` nicht existiert; 422, wenn der Eintrag kein
+`rally`-Event ist (Wechsel/Auszeit/Aufstellungskorrektur sind nicht auf diesem
+Weg editierbar).
+
 ---
 
 ## Typischer Ablauf (curl)

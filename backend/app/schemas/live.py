@@ -30,3 +30,11 @@ class TimeoutRequest(BaseModel):
 class LineupCorrectionRequest(BaseModel):
     side: Side
     lineup: list[int] = Field(min_length=6, max_length=6)
+
+
+class HistoryActionsUpdate(BaseModel):
+    # Correction of an already-recorded rally: same free-text code style as
+    # direct entry (RallyRequest.actions), replaces the whole action list of
+    # that rally. `winner`/score are left untouched — only the scout codes
+    # (description), not the match result, are being corrected.
+    actions: list[str] = Field(min_length=1)

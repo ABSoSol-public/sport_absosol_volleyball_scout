@@ -190,6 +190,69 @@ def test_live_scouting_flow(client: TestClient) -> None:
     assert match["status"] == "live"
 
 
+def test_live_history_log_and_correction(client: TestClient) -> None:
+    match_id = _create_match(client)
+    client.post(
+        f"/api/matches/{match_id}/live/set",
+        json={"serving": "home", "home_lineup": HOME_LINEUP, "away_lineup": AWAY_LINEUP},
+    )
+    client.post(
+        f"/api/matches/{match_id}/live/rally",
+        json={"winner": "away", "actions": ["5SQ-", "a11RQ+", "a14AH#"]},
+    )
+    client.post(
+        f"/api/matches/{match_id}/live/substitution",
+        json={"side": "home", "player_out": 1, "player_in": 9},
+    )
+
+    history = client.get(f"/api/matches/{match_id}/live/history").json()
+    assert [row["event_type"] for row in history] == ["start_set", "rally", "substitution"]
+
+    rally_row = history[1]
+    assert rally_row["winner"] == "away"
+    assert rally_row["set_number"] == 1
+    assert rally_row["home_score"] == 0 and rally_row["away_score"] == 1
+    assert [a["raw_code"] for a in rally_row["actions"]] == ["5SQ-", "a11RQ+", "a14AH#"]
+    assert rally_row["actions"][2]["player_number"] == 14
+    assert rally_row["created_at"]
+
+    # Correction: the attacker was actually number 17, not 14
+    corrected = client.patch(
+        f"/api/matches/{match_id}/live/history/{rally_row['seq']}",
+        json={"actions": ["5SQ-", "a11RQ+", "a17AH#"]},
+    )
+    assert corrected.status_code == 200, corrected.text
+    assert corrected.json()["actions"][2]["player_number"] == 17
+
+    # Score stays untouched by the correction
+    state = client.get(f"/api/matches/{match_id}/live/state").json()
+    assert state["current_set"]["points"] == {"home": 0, "away": 1}
+
+    # Invalid code gets rejected, previous entry stays unchanged
+    rejected = client.patch(
+        f"/api/matches/{match_id}/live/history/{rally_row['seq']}",
+        json={"actions": ["9XY"]},
+    )
+    assert rejected.status_code == 422
+    unchanged = client.get(f"/api/matches/{match_id}/live/history").json()
+    assert unchanged[1]["actions"][2]["player_number"] == 17
+
+    # Non-rally entries (e.g. substitutions) are deliberately not editable
+    sub_seq = history[2]["seq"]
+    not_editable = client.patch(
+        f"/api/matches/{match_id}/live/history/{sub_seq}", json={"actions": ["5SQ-"]}
+    )
+    assert not_editable.status_code == 422
+
+
+def test_live_history_missing_entry_returns_404(client: TestClient) -> None:
+    match_id = _create_match(client)
+    response = client.patch(
+        f"/api/matches/{match_id}/live/history/999", json={"actions": ["5SQ-"]}
+    )
+    assert response.status_code == 404
+
+
 def test_lineup_correction(client: TestClient) -> None:
     match_id = _create_match(client)
     client.post(

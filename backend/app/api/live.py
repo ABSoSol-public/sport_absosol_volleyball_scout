@@ -18,6 +18,7 @@ from app.engine import MatchEngine, Rules, RuleViolation
 from app.engine.scout_code import ScoutCodeError, parse_action
 from app.models import LiveEvent, Match, User
 from app.schemas.live import (
+    HistoryActionsUpdate,
     LineupCorrectionRequest,
     RallyRequest,
     StartSetRequest,
@@ -84,6 +85,79 @@ def _append_event(
 def get_state(match_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     match = _load_match(match_id, db)
     return _rebuild(match, _events(match_id, db)).state()
+
+
+def _score_snapshot(engine: MatchEngine) -> tuple[int | None, int | None, int | None]:
+    """(set number, home points, away points) right after the last applied event."""
+    current = engine.current_set
+    if current is not None:
+        return current.number, current.points["home"], current.points["away"]
+    if engine.set_history:
+        finished = engine.set_history[-1]
+        return finished.number, finished.points["home"], finished.points["away"]
+    return None, None, None
+
+
+@router.get("/history")
+def get_history(match_id: int, db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+    """Chronological log of all events, for the scout-code history table in the frontend.
+
+    Builds the score for each event via incremental replay (analogous to the
+    DVW `sp_home/guest_setter_pos` principle: every row carries its own
+    context instead of it being back-calculated from the final state).
+    """
+    match = _load_match(match_id, db)
+    engine = MatchEngine(_rules(match))
+    rows: list[dict[str, Any]] = []
+    for event in _events(match_id, db):
+        engine.apply_event(event.event_type, event.payload)
+        set_number, home_score, away_score = _score_snapshot(engine)
+        row: dict[str, Any] = {
+            "seq": event.seq,
+            "event_type": event.event_type,
+            "created_at": event.created_at,
+            "set_number": set_number,
+            "home_score": home_score,
+            "away_score": away_score,
+            "payload": event.payload,
+        }
+        if event.event_type == "rally":
+            row["winner"] = event.payload.get("winner")
+            row["actions"] = event.payload.get("actions", [])
+        rows.append(row)
+    return rows
+
+
+@router.patch("/history/{seq}")
+def correct_history_actions(
+    match_id: int, seq: int, data: HistoryActionsUpdate, db: Session = Depends(get_db),
+    _writer: User = Depends(require_writer),
+) -> dict[str, Any]:
+    """Retroactive correction of the scout codes of an already-recorded rally.
+
+    Deliberately changes only the action list (description), never `winner` —
+    score/rotation depend exclusively on `winner` (see
+    `MatchEngine._on_rally`), so this correction doesn't need a replay.
+    """
+    _load_match(match_id, db)
+    event = db.scalar(
+        select(LiveEvent).where(LiveEvent.match_id == match_id, LiveEvent.seq == seq)
+    )
+    if event is None:
+        raise HTTPException(404, "Eintrag nicht gefunden.")
+    if event.event_type != "rally":
+        raise HTTPException(422, "Nur Ballwechsel-Einträge mit Scout-Codes sind bearbeitbar.")
+
+    actions: list[dict[str, Any]] = []
+    for code in data.actions:
+        try:
+            actions.append(parse_action(code).__dict__)
+        except (ScoutCodeError, IndexError) as exc:
+            raise HTTPException(422, f"Scout-Code {code!r}: {exc}") from exc
+
+    event.payload = {**event.payload, "actions": actions}
+    db.commit()
+    return {"seq": event.seq, "actions": actions}
 
 
 @router.post("/set")

@@ -43,7 +43,7 @@ onMounted(() => {
       </span>
     </template>
   </nav>
-  <main>
+  <main :class="{ 'main-wide': route.meta.wide }">
     <RouterView />
   </main>
 </template>

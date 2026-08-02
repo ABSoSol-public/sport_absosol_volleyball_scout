@@ -85,6 +85,30 @@ Ablauf pro Request (`backend/app/api/live.py`):
 Rebuild-Kosten: O(Events) pro Request — bei ein paar hundert Events pro Match
 unkritisch; bei Bedarf später durch Snapshotting optimierbar.
 
+### Historylog & nachträgliche Korrektur (`GET`/`PATCH …/live/history`)
+
+Der rechte Historylog im Frontend (`LiveScoutView.vue`) braucht mehr als nur
+den Endzustand: **je Event** den Punktestand direkt danach, für `rally` zudem
+die bereits geparsten Aktionen. `get_history` (`app/api/live.py`) baut das per
+inkrementellem Replay auf — nach jedem `apply_event` wird `current_set.points`
+(bzw. bei Satzende das zuletzt abgeschlossene `set_history`-Element) als
+Snapshot mitgeschrieben, orientiert an der Data-Volley-`[3SCOUT]`-Zeile, die
+ebenfalls Zeit/Satz/Zonen/Code je Aktion trägt (`docs/DVW-FORMAT.md`
+Abschnitt 2.12).
+
+Die Korrektur (`PATCH …/live/history/{seq}`) ersetzt bewusst **nur**
+`payload["actions"]` eines `rally`-Events, nie `winner`. Das ist safe ohne
+erneutes Replay der Folge-Events, weil `MatchEngine._on_rally` ausschließlich
+`winner` auswertet — `actions` sind reine Beschreibungsdaten ohne Einfluss auf
+Punktestand/Rotation/Satzende (aktuell auch ohne Rückwirkung auf den
+Statistik-Strang, da `rallies`/`scout_actions` nur beim DVW-Import befüllt
+werden, nicht aus `live_events` abgeleitet — das folgt erst mit Roadmap 2.7).
+Andere Event-Typen (`substitution`, `timeout`, `correct_lineup`, `start_set`)
+sind über diesen Weg bewusst **nicht** editierbar (422), da eine Korrektur dort
+den nachfolgenden Spielzustand (Wechsel-/Auszeitlimits, Rotation) verändern
+würde und ein echtes Replay bräuchte — außerhalb des Umfangs dieser ersten
+Historylog-Version.
+
 ## Match-Engine (`app/engine/match_engine.py`)
 
 Abgebildete Volleyball-Regeln (Indoor, über `Rules` parametrisierbar — auch Beach
@@ -364,6 +388,31 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   Zonen-Helfer sichtbar, statt mit der Karte mitzuscrollen. `.scoreboard
   .points` (die große Punktezahl) von `3rem` auf `2rem` verkleinert, um dem
   jetzt permanent sichtbaren Eingabefeld mehr Platz einzuräumen.
+- **Rechter Historylog, aufgedröselt + nachbearbeitbar** (Roadmap 2.6,
+  Nutzerwunsch: „auf der rechten Seite ein tabellarischer Historylog mit
+  aufgedröseltem Scout-Code und Zeitstempel der Eingabe … orientiere dich an
+  die bekannten Scout-Dateien … es benötigt eine nachbearbeitbare tabellarische
+  Ansicht"): `LiveScoutView.vue` bekam ein zweispaltiges Layout
+  (`.live-layout`: `.live-main` links wie bisher, `.live-history-panel` rechts
+  neu, `position: sticky` damit er beim Scrollen im linken Bereich sichtbar
+  bleibt). Die Tabelle zeigt **eine Zeile je Aktion** (Zeit/Satz/Punkte nur auf
+  der ersten Aktionszeile eines Ballwechsels, analog zur DVW-`[3SCOUT]`-Zeile,
+  siehe unten) mit den Spalten Team/Nr./Aktion (Skill, aus derselben
+  `SKILLS`-Zuordnung wie `scout_code.py`, nur deutsch)/Typ/Wertung/Zone/Code;
+  Sonderereignisse (Wechsel, Auszeit, Satzstart, Aufstellungskorrektur)
+  bekommen eine eigene Beschreibungszeile ohne Spaltenaufschlüsselung. Bewusst
+  **eine flache, vorberechnete `historyRows`-Liste** (`computed`) statt
+  verschachteltem `v-if`/`v-for` im Template — hält die Editier-Zeile
+  eindeutig zuordenbar. Editieren ersetzt die komplette Codezeile eines
+  Ballwechsels über ein Textfeld im selben Kompakt-Codeformat wie die
+  Haupteingabe (kein Aufbau einzelner Dropdown-Editoren je Spalte — die
+  Nutzer sind mit dem Kompaktformat bereits vertraut). Da die Datenseite
+  (`GET`/`PATCH …/live/history`) mehr Breite braucht als die anderen Ansichten,
+  bekam die globale `main`-Breitenbeschränkung (960px) eine Route-Meta-
+  gesteuerte Ausnahme (`meta: { wide: true }` auf der Live-Route,
+  `main.main-wide` auf 1400px in `App.vue`/`styles.css`) statt einer
+  `:has()`-Selektor-Lösung, um konsistent mit dem übrigen (deklarativen statt
+  CSS-Feature-Detection-basierten) Stil der Codebasis zu bleiben.
 
 ## Konfiguration
 
