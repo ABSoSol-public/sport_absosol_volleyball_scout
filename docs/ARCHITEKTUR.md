@@ -453,9 +453,43 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   `scout_code.py`, nur deutsch beschriftet) → Typ (optional) → Wertung. Jede
   Stufe ist per `:disabled` gesperrt, bis die vorherige eine gültige Auswahl
   hat (das geforderte „UI-Sperrmuster"); ein Klick auf eine Wertungs-Schaltfläche
-  (oder „ohne Wertung") schließt die Aktion ab, emittiert den Code und setzt
-  den internen Zustand zurück. Löst damit den letzten offenen Punkt in
-  Roadmap 2.5 ein — 2.5 ist damit vollständig umgesetzt.
+  schließt die Aktion ab, emittiert den Code und setzt den internen Zustand
+  zurück. Löst damit den letzten offenen Punkt in Roadmap 2.5 ein — 2.5 ist
+  damit vollständig umgesetzt.
+- **Aufschlag-Kombinationscode im Klickpfad** (Nutzerfeedback 2026-08-02, genaue
+  Domänenregeln zum Aufschlag-Annahme-Kombicode inkl. Beispiel `*17S14.3#`):
+  drei Ergänzungen in `ClickPathInput.vue`:
+  1. Präfix ist jetzt immer explizit — Heim `*`, Gast `a` (klein) — vorher ließ
+     der Klickpfad das Heim-Präfix weg (galt nur implizit per Parser-Default);
+     die Direkteingabe/`parse_action`/`parse_action_lenient` akzeptieren
+     weiterhin auch fehlendes Präfix (Default „home"), das bleibt unverändert.
+  2. Skill „Aufschlag" bekommt einen eigenen Kombi-Ablauf statt Typ+Wertung:
+     Start-/Ziel-Zone (1–9, direkt nach `S`), dann entweder **„Fehler
+     (Netz/Aus)"** (baut `<präfix><nr>S=<zonen>` — Wertung direkt nach dem
+     Skill-Buchstaben, dadurch weiterhin von der bestehenden strikten
+     `parse_action`-Grammatik lesbar) oder eine **Annahme-Kombination**:
+     Annahme-Spieler (immer aus dem Kader der **Gegenseite** — `opponents`
+     als Komplement zu `side`, kein neuer Kader-Abgleich nötig) + eine von
+     fünf Annahme-Wertungen (`= - / # +`, bewusst **ohne** `!` — kommt in den
+     Domänenregeln für Aufschlag/Annahme nicht vor), baut
+     `<präfix><nr>S<zonen>.<annahmeSpieler><annahmeWertung>`. Die eigentliche
+     Aufschlagbewertung wird laut Nutzerregel **nicht** in den Code
+     geschrieben, sondern ist über eine feste Tabelle nur implizit (Annahme
+     `=`→Aufschlag `#`, `-`→`+`, `/`→`/`, `#`/`+`→`-`) — als Tooltip auf den
+     Annahme-Wertungs-Buttons angezeigt, nicht Teil des gespeicherten Strings.
+     **Bekannte Einschränkung**: der `.`-Trenner in der Annahme-Kombination
+     ist von der bestehenden `_MAIN_CODE`-Regex nicht vorgesehen — dieser
+     Teil landet dadurch weiterhin im nachsichtigen Rohcode-Fallback
+     (`parse_action_lenient`, Seite korrekt aus dem `*`/`a`-Präfix geraten,
+     übrige Felder `null`) statt im Historylog vollständig aufgedröselt zu
+     werden. Eine echte Parser-Unterstützung für dieses Kombi-Format wäre ein
+     eigener, größerer Folgeschritt (eigene Datenmodellierung: vermutlich zwei
+     verknüpfte Aktionsdatensätze statt einem) und war nicht Teil dieser
+     Anfrage.
+  3. Der bisherige separate „ohne Wertung"-Button (emittierte gar kein
+     Wertungszeichen) entfällt — laut Nutzerregel ist „+" bei Unsicherheit
+     immer ein zulässiger Platzhalter, macht den Button redundant zum
+     ohnehin vorhandenen „+"-Symbol (jetzt mit Tooltip-Hinweis darauf).
 
 ## Konfiguration
 
