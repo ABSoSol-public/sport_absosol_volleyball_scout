@@ -281,7 +281,13 @@ nav.topnav a:hover {
   border-top: 2px solid #d7dde3;
 }
 
-.history-edit-btn {
+.history-row-buttons {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.history-edit-btn,
+.history-delete-btn {
   padding: 0.1rem 0.5rem;
   line-height: 1;
 }
@@ -343,6 +349,47 @@ nav.topnav a:hover {
 .court-wide .zone select {
   font-size: 0.85rem;
   padding: 0.3rem;
+}
+
+.clickpath {
+  margin-bottom: 1rem;
+}
+
+.clickpath-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.clickpath-row button {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.clickpath-label {
+  min-width: 6.5rem;
+  font-weight: 600;
+  color: #5b6b7b;
+  font-size: 0.85rem;
+}
+
+.clickpath-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.clickpath-preview {
+  font-size: 0.9rem;
+}
+
+.clickpath-preview code {
+  background: #eef1f4;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
 }
 
 .helper-shared-toolbar {

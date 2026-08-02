@@ -109,6 +109,31 @@ den nachfolgenden Spielzustand (Wechsel-/Auszeitlimits, Rotation) verändern
 würde und ein echtes Replay bräuchte — außerhalb des Umfangs dieser ersten
 Historylog-Version.
 
+**Löschen einer einzelnen Aktion** hat bewusst **keinen** eigenen Endpunkt:
+das Frontend berechnet die verbleibende Rohcode-Liste (aktuelle Liste minus
+den zu löschenden Index) und schickt sie an denselben `PATCH`-Endpunkt —
+identisch zum Text-Korrektur-Flow, nur mit einer clientseitig vorbereiteten
+Liste statt Freitext. `HistoryActionsUpdate.actions` darf daher auch leer
+sein (kein `min_length`), damit auch die letzte verbliebene Aktion eines
+Ballwechsels entfernt werden kann; ein `rally`-Event mit null Aktionen bleibt
+gültig (`RallyRequest.actions` ist ebenfalls optional) und bekommt im
+Frontend eine eigene Platzhalterzeile („– kein Scout-Code –"), damit Zeit/
+Punktestand sichtbar und der Eintrag weiterhin editierbar bleiben.
+
+**Nachsichtige Code-Auswertung** (`parse_action_lenient` in
+`app/engine/scout_code.py`, Nutzerfeedback: „sieh das Scoutfeld wie ein
+Texteingabefeld — Eingabe soll unterstützt, nicht unterbunden werden"):
+sowohl `POST …/live/rally` als auch die Korrektur oben lehnen keinen Code
+mehr ab. Ein Code, der nicht zur Main-Code-Grammatik passt, wird als
+Rohcode-Fallback gespeichert (`raw_code` = exakt der eingegebene Text, `side`
+weiterhin aus einem `*`/`a`-Präfix geraten falls vorhanden, alle anderen
+Felder `null`) statt die komplette Anfrage per 422 abzulehnen — sonst würde
+ein einzelner Tippfehler unter mehreren Codes den ganzen Ballwechsel samt
+Punktvergabe verwerfen. Die strikte `parse_action` bleibt unverändert
+bestehen (u. a. von `parse_action_lenient` selbst und den Parser-eigenen
+Tests genutzt); nur die beiden API-Einstiegspunkte, die frei getippten Text
+persistieren, wurden auf die nachsichtige Variante umgestellt.
+
 ## Match-Engine (`app/engine/match_engine.py`)
 
 Abgebildete Volleyball-Regeln (Indoor, über `Rules` parametrisierbar — auch Beach
@@ -413,6 +438,24 @@ in die Live-Scouting-Ansicht, die dort mangels `live_events` fälschlich eine
   `main.main-wide` auf 1400px in `App.vue`/`styles.css`) statt einer
   `:has()`-Selektor-Lösung, um konsistent mit dem übrigen (deklarativen statt
   CSS-Feature-Detection-basierten) Stil der Codebasis zu bleiben.
+- **Klickpfad-Eingabe** (Roadmap 2.5, letzter offener Punkt dieser Version:
+  „Klickpfad Team → Spieler → Skill → Bewertung als Alternative zur
+  Direkteingabe, inkl. UI-Sperrmuster"): neue Komponente
+  `frontend/src/components/ClickPathInput.vue`, rein clientseitig (kein
+  Backend-Anteil nötig) — sie baut denselben Main-Code-String zusammen, den
+  auch die Direkteingabe erwartet, und hängt ihn übers `append`-Event genauso
+  an `actionCodes` an wie der Zonen-Helfer schon die Zonen-Ziffern (siehe
+  `appendClickPathCode` in `LiveScoutView.vue`; anders als beim Zonen-Helfer
+  beginnt hier aber eine **neue** Aktion, daher wird bei Bedarf zuerst ein
+  trennendes Leerzeichen ergänzt). Schritte: Team → Spieler (nur die laut
+  aktueller Aufstellung tatsächlich auf dem Feld stehenden, aus dem bereits
+  vorhandenen `onCourt(side)` in `LiveScoutView.vue`) → Aktion (`SKILLS` aus
+  `scout_code.py`, nur deutsch beschriftet) → Typ (optional) → Wertung. Jede
+  Stufe ist per `:disabled` gesperrt, bis die vorherige eine gültige Auswahl
+  hat (das geforderte „UI-Sperrmuster"); ein Klick auf eine Wertungs-Schaltfläche
+  (oder „ohne Wertung") schließt die Aktion ab, emittiert den Code und setzt
+  den internen Zustand zurück. Löst damit den letzten offenen Punkt in
+  Roadmap 2.5 ein — 2.5 ist damit vollständig umgesetzt.
 
 ## Konfiguration
 

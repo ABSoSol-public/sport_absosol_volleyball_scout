@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import require_writer
 from app.db.session import get_db
 from app.engine import MatchEngine, Rules, RuleViolation
-from app.engine.scout_code import ScoutCodeError, parse_action
+from app.engine.scout_code import parse_action_lenient
 from app.models import LiveEvent, Match, User
 from app.schemas.live import (
     HistoryActionsUpdate,
@@ -148,13 +148,7 @@ def correct_history_actions(
     if event.event_type != "rally":
         raise HTTPException(422, "Nur Ballwechsel-Einträge mit Scout-Codes sind bearbeitbar.")
 
-    actions: list[dict[str, Any]] = []
-    for code in data.actions:
-        try:
-            actions.append(parse_action(code).__dict__)
-        except (ScoutCodeError, IndexError) as exc:
-            raise HTTPException(422, f"Scout-Code {code!r}: {exc}") from exc
-
+    actions = [parse_action_lenient(code) for code in data.actions]
     event.payload = {**event.payload, "actions": actions}
     db.commit()
     return {"seq": event.seq, "actions": actions}
@@ -169,12 +163,7 @@ def start_set(match_id: int, data: StartSetRequest, db: Session = Depends(get_db
 @router.post("/rally")
 def record_rally(match_id: int, data: RallyRequest, db: Session = Depends(get_db), _writer: User = Depends(require_writer)) -> dict[str, Any]:
     match = _load_match(match_id, db)
-    actions: list[dict[str, Any]] = []
-    for code in data.actions:
-        try:
-            actions.append(parse_action(code).__dict__)
-        except (ScoutCodeError, IndexError) as exc:
-            raise HTTPException(422, f"Scout-Code {code!r}: {exc}") from exc
+    actions = [parse_action_lenient(code) for code in data.actions]
     return _append_event(match, "rally", {"winner": data.winner, "actions": actions}, db)
 
 

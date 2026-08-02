@@ -36,5 +36,7 @@ class HistoryActionsUpdate(BaseModel):
     # Correction of an already-recorded rally: same free-text code style as
     # direct entry (RallyRequest.actions), replaces the whole action list of
     # that rally. `winner`/score are left untouched — only the scout codes
-    # (description), not the match result, are being corrected.
-    actions: list[str] = Field(min_length=1)
+    # (description), not the match result, are being corrected. May be empty
+    # (e.g. removing the last remaining action of a rally), same as
+    # RallyRequest.actions.
+    actions: list[str] = []

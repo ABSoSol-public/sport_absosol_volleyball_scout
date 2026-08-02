@@ -1,6 +1,6 @@
 import pytest
 
-from app.engine.scout_code import ScoutCodeError, parse_action
+from app.engine.scout_code import ScoutCodeError, parse_action, parse_action_lenient
 
 
 def test_parse_minimal_home_code() -> None:
@@ -62,3 +62,26 @@ def test_subzone_lowercase_is_normalized() -> None:
 def test_subzone_without_end_zone_raises() -> None:
     with pytest.raises(ScoutCodeError):
         parse_action("5SQ=A")
+
+
+def test_lenient_parse_falls_back_to_raw_code_on_invalid_input() -> None:
+    result = parse_action_lenient("XX")
+    assert result["raw_code"] == "XX"
+    assert result["side"] == "home"  # no */a prefix -> default_side
+    assert result["player_number"] is None
+    assert result["skill"] is None
+    assert result["evaluation"] is None
+
+
+def test_lenient_parse_still_guesses_side_from_prefix() -> None:
+    assert parse_action_lenient("aXX")["side"] == "away"
+    assert parse_action_lenient("*XX")["side"] == "home"
+    assert parse_action_lenient("aXX", default_side="home")["side"] == "away"
+
+
+def test_lenient_parse_respects_default_side_without_prefix() -> None:
+    assert parse_action_lenient("XX", default_side="away")["side"] == "away"
+
+
+def test_lenient_parse_matches_strict_parse_on_valid_input() -> None:
+    assert parse_action_lenient("5SQ=") == parse_action("5SQ=").__dict__

@@ -261,8 +261,14 @@ Ballwechsel abschließen („End Rally"):
 ```
 `actions` ist optional: Scout-Codes im DataVolley-Main-Code-Format
 (`[*|a]<Nummer><Skill S|R|A|B|D|E|F><Typ H|M|Q|T|U|N|O?><Bewertung #|+|!|-|/|=?><Startzone?><Endzone?>`;
-ohne Präfix gilt Heimteam). Ungültige Codes → 422, nichts wird gespeichert.
-Die Engine übernimmt Punktvergabe, Side-Out, Rotation, Satz- und Matchende.
+ohne Präfix gilt Heimteam). Das Feld verhält sich wie ein reines
+Texteingabefeld — **es unterstützt, blockiert aber nicht** (Nutzerfeedback):
+ein Code, der nicht ins Format passt, wird **nicht** abgelehnt, sondern als
+Rohcode mit sonst leeren Feldern gespeichert (`parse_action_lenient` in
+`backend/app/engine/scout_code.py`) und bleibt über den Historylog
+korrigierbar/löschbar (siehe `GET`/`PATCH …/live/history` unten). Die Engine
+übernimmt Punktvergabe, Side-Out, Rotation, Satz- und Matchende — unabhängig
+davon, ob einzelne Codes geparst werden konnten.
 
 ### `POST …/live/substitution`
 ```json
@@ -322,8 +328,13 @@ laufenden Spiel fallen oft erst später auf):
 ```json
 { "actions": ["5SQ-", "a11RQ+", "a17AH#"] }
 ```
-Ersetzt die komplette Aktionsliste des Ballwechsels `seq` (gleiches Codeformat
-wie bei `/live/rally`, ungültige Codes → 422). Ändert bewusst **nur** die
+Ersetzt die komplette Aktionsliste des Ballwechsels `seq` (gleiches
+Codeformat und dieselbe nachsichtige Auswertung wie bei `/live/rally` —
+ungültige Codes werden auch hier als Rohcode übernommen statt abgelehnt).
+`actions` darf auch leer sein (`[]`), um die letzte verbliebene Aktion eines
+Ballwechsels zu entfernen. Löschen einer **einzelnen** Aktion (Papierkorb-
+Symbol pro Zeile im Frontend) läuft über denselben Endpunkt: das Frontend
+schickt einfach die verbleibenden Rohcodes erneut. Ändert bewusst **nur** die
 Beschreibung, nicht `winner`/Punktestand/Rotation — die hängen ausschließlich
 an `winner`, das unangetastet bleibt, ein Replay ist für diese Korrektur also
 nicht nötig. 404, wenn `seq` nicht existiert; 422, wenn der Eintrag kein

@@ -157,12 +157,6 @@ def test_live_scouting_flow(client: TestClient) -> None:
     assert state["current_set"]["serving"] == "away"
     assert state["current_set"]["lineups"]["away"] == [12, 13, 14, 15, 16, 11]
 
-    # Ungültiger Scout-Code wird abgelehnt und ändert nichts
-    response = client.post(
-        f"/api/matches/{match_id}/live/rally", json={"winner": "home", "actions": ["9XY"]}
-    )
-    assert response.status_code == 422
-
     # Wechsel + Auszeit
     assert (
         client.post(
@@ -188,6 +182,75 @@ def test_live_scouting_flow(client: TestClient) -> None:
 
     match = client.get(f"/api/matches/{match_id}").json()
     assert match["status"] == "live"
+
+
+def test_scout_code_lenient_parsing_never_rejects_rally(client: TestClient) -> None:
+    # The scout-code field behaves like a plain text input: it should assist,
+    # not block. A single malformed code among several must not reject the
+    # whole rally (that would also lose the point for that rally) — it's kept
+    # as-is (raw_code preserved, everything else null) and correctable later
+    # from the history log.
+    match_id = _create_match(client)
+    client.post(
+        f"/api/matches/{match_id}/live/set",
+        json={"serving": "home", "home_lineup": HOME_LINEUP, "away_lineup": AWAY_LINEUP},
+    )
+
+    response = client.post(
+        f"/api/matches/{match_id}/live/rally",
+        json={"winner": "home", "actions": ["5SQ-", "9XY", "a11RQ#"]},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["current_set"]["points"] == {"home": 1, "away": 0}
+
+    history = client.get(f"/api/matches/{match_id}/live/history").json()
+    rally_row = history[-1]
+    fallback = rally_row["actions"][1]
+    assert fallback["raw_code"] == "9XY"
+    assert fallback["side"] == "home"  # no */a prefix -> falls back to default_side
+    assert fallback["player_number"] is None
+    assert fallback["skill"] is None
+
+    # A code with an explicit away prefix still gets its side guessed even
+    # when the rest doesn't parse.
+    client.post(
+        f"/api/matches/{match_id}/live/rally",
+        json={"winner": "away", "actions": ["aXYZ"]},
+    )
+    history = client.get(f"/api/matches/{match_id}/live/history").json()
+    assert history[-1]["actions"][0]["side"] == "away"
+
+
+def test_history_action_can_be_removed(client: TestClient) -> None:
+    # The history table lets a scout delete a single mis-scouted action; the
+    # frontend does this by PATCHing the remaining raw codes (no dedicated
+    # delete endpoint needed). Deleting down to zero actions must stay valid
+    # for a rally, matching RallyRequest.actions being optional in the first
+    # place.
+    match_id = _create_match(client)
+    client.post(
+        f"/api/matches/{match_id}/live/set",
+        json={"serving": "home", "home_lineup": HOME_LINEUP, "away_lineup": AWAY_LINEUP},
+    )
+    client.post(
+        f"/api/matches/{match_id}/live/rally",
+        json={"winner": "away", "actions": ["5SQ-", "a11RQ+", "a14AH#"]},
+    )
+    seq = client.get(f"/api/matches/{match_id}/live/history").json()[-1]["seq"]
+
+    removed_middle = client.patch(
+        f"/api/matches/{match_id}/live/history/{seq}", json={"actions": ["5SQ-", "a14AH#"]}
+    )
+    assert removed_middle.status_code == 200, removed_middle.text
+    assert [a["raw_code"] for a in removed_middle.json()["actions"]] == ["5SQ-", "a14AH#"]
+
+    cleared = client.patch(f"/api/matches/{match_id}/live/history/{seq}", json={"actions": []})
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["actions"] == []
+
+    # Score is still untouched by removing every action.
+    state = client.get(f"/api/matches/{match_id}/live/state").json()
+    assert state["current_set"]["points"] == {"home": 0, "away": 1}
 
 
 def test_live_history_log_and_correction(client: TestClient) -> None:
@@ -228,14 +291,15 @@ def test_live_history_log_and_correction(client: TestClient) -> None:
     state = client.get(f"/api/matches/{match_id}/live/state").json()
     assert state["current_set"]["points"] == {"home": 0, "away": 1}
 
-    # Invalid code gets rejected, previous entry stays unchanged
-    rejected = client.patch(
+    # Invalid code is accepted too (lenient parsing) — kept as a raw fallback
+    # instead of rejecting the whole correction
+    lenient = client.patch(
         f"/api/matches/{match_id}/live/history/{rally_row['seq']}",
         json={"actions": ["9XY"]},
     )
-    assert rejected.status_code == 422
-    unchanged = client.get(f"/api/matches/{match_id}/live/history").json()
-    assert unchanged[1]["actions"][2]["player_number"] == 17
+    assert lenient.status_code == 200, lenient.text
+    assert lenient.json()["actions"][0]["raw_code"] == "9XY"
+    assert lenient.json()["actions"][0]["player_number"] is None
 
     # Non-rally entries (e.g. substitutions) are deliberately not editable
     sub_seq = history[2]["seq"]

@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { api } from "../api";
 import VolleyballCourt from "../components/VolleyballCourt.vue";
 import RotationCourt from "../components/RotationCourt.vue";
+import ClickPathInput from "../components/ClickPathInput.vue";
 
 const props = defineProps({ id: { type: String, required: true } });
 
@@ -96,11 +97,28 @@ const historyRows = computed(() => {
       });
       continue;
     }
+    if (entry.actions.length === 0) {
+      // A rally can end up with zero actions (deleted down to nothing, or
+      // never had any) — still needs its own row so time/score stay visible
+      // and the entry remains reachable for editing.
+      rows.push({
+        kind: "action",
+        key: `a${entry.seq}-empty`,
+        seq: entry.seq,
+        isFirst: true,
+        isEmpty: true,
+        time: formatTime(entry.created_at),
+        setNumber: entry.set_number,
+        homeScore: entry.home_score,
+        awayScore: entry.away_score,
+      });
+    }
     entry.actions.forEach((action, index) => {
       rows.push({
         kind: "action",
         key: `a${entry.seq}-${index}`,
         seq: entry.seq,
+        actionIndex: index,
         isFirst: index === 0,
         time: index === 0 ? formatTime(entry.created_at) : "",
         setNumber: index === 0 ? entry.set_number : null,
@@ -147,6 +165,24 @@ async function saveEditHistory(seq) {
   }
 }
 
+// Removes a single mis-scouted action from its rally (re-sends the remaining
+// raw codes to the same correction endpoint used for text edits — no
+// dedicated delete endpoint needed). May leave the rally with zero actions.
+async function deleteHistoryAction(seq, actionIndex) {
+  const entry = history.value.find((e) => e.seq === seq);
+  if (!entry) return;
+  const actions = entry.actions
+    .filter((_, i) => i !== actionIndex)
+    .map((a) => a.raw_code);
+  error.value = "";
+  try {
+    await api.correctHistoryActions(props.id, seq, { actions });
+    await loadHistory();
+  } catch (e) {
+    error.value = e.message;
+  }
+}
+
 // "90°" (Netzausrichtung) und "Seitenwechsel" (welches Team wo angezeigt wird)
 // gelten für Rotations- und Zonen-Helfer gemeinsam (Nutzerfeedback: „die
 // Buttons drehen und Seitenwechsel müssen immer für beide Grafiken gelten") —
@@ -159,6 +195,15 @@ const helperSwapped = ref(false);
 function appendZone(selection) {
   actionCodes.value +=
     selection.target === "end" ? selection.zone + selection.subzone : selection.zone;
+}
+
+// Click-path emits a whole finished main-code chunk (Team+Nummer+Skill+Typ+
+// Wertung) — unlike appendZone, this starts a *new* action, so it needs its
+// own separating space from whatever is already in the buffer (typed or
+// clicked). Zone digits clicked afterwards then attach directly (no space).
+function appendClickPathCode(code) {
+  const needsSpace = actionCodes.value.length > 0 && !/\s$/.test(actionCodes.value);
+  actionCodes.value += (needsSpace ? " " : "") + code;
 }
 
 const setRunning = computed(() => state.value?.set_running);
@@ -365,6 +410,15 @@ onMounted(refresh);
 
     <!-- Laufender Satz -->
     <div v-if="setRunning" class="card">
+      <h3 class="field-helper-title">Klickpfad-Eingabe (Alternative zur Direkteingabe)</h3>
+      <ClickPathInput
+        :home-label="match.home_team.code"
+        :away-label="match.away_team.code"
+        :home-players="onCourt('home')"
+        :away-players="onCourt('away')"
+        @append="appendClickPathCode"
+      />
+
       <div class="helper-shared-toolbar">
         <button type="button" class="secondary" @click="helperVertical = !helperVertical">
           ⟳ 90° drehen
@@ -491,6 +545,23 @@ onMounted(refresh);
                 <td>{{ row.homeScore ?? "–" }}:{{ row.awayScore ?? "–" }}</td>
                 <td colspan="7" class="muted">{{ row.description }}</td>
               </template>
+              <template v-else-if="row.kind === 'action' && row.isEmpty">
+                <td>{{ row.time }}</td>
+                <td>{{ row.setNumber ?? "" }}</td>
+                <td>{{ row.setNumber !== null ? `${row.homeScore}:${row.awayScore}` : "" }}</td>
+                <td colspan="6" class="muted">– kein Scout-Code –</td>
+                <td>
+                  <button
+                    v-if="editingSeq !== row.seq"
+                    type="button"
+                    class="secondary history-edit-btn"
+                    title="Scout-Codes für diesen Ballwechsel eintragen"
+                    @click="startEditHistory(row.seq)"
+                  >
+                    ✎
+                  </button>
+                </td>
+              </template>
               <template v-else-if="row.kind === 'action'">
                 <td>{{ row.time }}</td>
                 <td>{{ row.setNumber ?? "" }}</td>
@@ -502,7 +573,7 @@ onMounted(refresh);
                 <td>{{ row.evaluation ?? "–" }}</td>
                 <td>{{ row.zone }}</td>
                 <td><code>{{ row.rawCode }}</code></td>
-                <td>
+                <td class="history-row-buttons">
                   <button
                     v-if="row.isFirst && editingSeq !== row.seq"
                     type="button"
@@ -511,6 +582,15 @@ onMounted(refresh);
                     @click="startEditHistory(row.seq)"
                   >
                     ✎
+                  </button>
+                  <button
+                    v-if="editingSeq !== row.seq"
+                    type="button"
+                    class="secondary history-delete-btn"
+                    title="Diese Aktion entfernen"
+                    @click="deleteHistoryAction(row.seq, row.actionIndex)"
+                  >
+                    ✕
                   </button>
                 </td>
               </template>

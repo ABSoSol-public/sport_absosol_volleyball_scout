@@ -17,6 +17,7 @@ im Rohcode erhalten und werden mitgespeichert.
 
 import re
 from dataclasses import dataclass
+from typing import Any
 
 SKILLS = {
     "S": "Serve",
@@ -92,3 +93,40 @@ def parse_action(code: str, default_side: str = "home") -> ParsedAction:
         end_zone=int(z) if (z := match.group("end_zone")) else None,
         subzone=match.group("subzone"),
     )
+
+
+def parse_action_lenient(code: str, default_side: str = "home") -> dict[str, Any]:
+    """Like `parse_action`, but never raises.
+
+    The live-scouting text field is meant to work like a plain text input —
+    it should assist, not block (user feedback: a scout typing fast can't
+    have a single malformed code reject the whole rally, since that would
+    also lose the point/score for that rally). Codes that don't match the
+    main-code grammar are kept as-is: `raw_code` preserves exactly what was
+    typed, `side` is still guessed from a `*`/`a` prefix, everything else is
+    `None` — correctable later from the history log instead of being
+    rejected up front.
+    """
+    try:
+        return parse_action(code, default_side).__dict__
+    except (ScoutCodeError, IndexError):
+        return {
+            "raw_code": code.strip(),
+            "side": _guess_side(code, default_side),
+            "player_number": None,
+            "skill": None,
+            "hit_type": None,
+            "evaluation": None,
+            "start_zone": None,
+            "end_zone": None,
+            "subzone": None,
+        }
+
+
+def _guess_side(code: str, default_side: str) -> str:
+    prefix = code.strip()[:1]
+    if prefix == "a":
+        return "away"
+    if prefix == "*":
+        return "home"
+    return default_side
