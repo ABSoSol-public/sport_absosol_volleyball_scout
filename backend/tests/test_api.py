@@ -221,6 +221,38 @@ def test_scout_code_lenient_parsing_never_rejects_rally(client: TestClient) -> N
     assert history[-1]["actions"][0]["side"] == "away"
 
 
+def test_serve_reception_compound_code_expands_into_two_actions(client: TestClient) -> None:
+    # A compound code (DataVolley's own term) links a serve to its reception
+    # in one token ("."); the API stores it as two linked action entries so
+    # the history log can show both broken down, not just a raw fallback.
+    match_id = _create_match(client)
+    client.post(
+        f"/api/matches/{match_id}/live/set",
+        json={"serving": "home", "home_lineup": HOME_LINEUP, "away_lineup": AWAY_LINEUP},
+    )
+
+    response = client.post(
+        f"/api/matches/{match_id}/live/rally",
+        json={"winner": "home", "actions": ["*5S14.11#"]},
+    )
+    assert response.status_code == 200, response.text
+
+    history = client.get(f"/api/matches/{match_id}/live/history").json()
+    actions = history[-1]["actions"]
+    assert len(actions) == 2
+
+    serve, reception = actions
+    assert serve["raw_code"] == reception["raw_code"] == "*5S14.11#"
+    assert serve["side"] == "home"
+    assert serve["player_number"] == 5
+    assert serve["skill"] == "S"
+    assert serve["evaluation"] == "-"  # implied from the perfect (#) reception
+    assert reception["side"] == "away"
+    assert reception["player_number"] == 11
+    assert reception["skill"] == "R"
+    assert reception["evaluation"] == "#"
+
+
 def test_history_action_can_be_removed(client: TestClient) -> None:
     # The history table lets a scout delete a single mis-scouted action; the
     # frontend does this by PATCHing the remaining raw codes (no dedicated

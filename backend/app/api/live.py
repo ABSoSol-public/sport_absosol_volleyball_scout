@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import require_writer
 from app.db.session import get_db
 from app.engine import MatchEngine, Rules, RuleViolation
-from app.engine.scout_code import parse_action_lenient
+from app.engine.scout_code import parse_scout_code
 from app.models import LiveEvent, Match, User
 from app.schemas.live import (
     HistoryActionsUpdate,
@@ -148,7 +148,9 @@ def correct_history_actions(
     if event.event_type != "rally":
         raise HTTPException(422, "Nur Ballwechsel-Einträge mit Scout-Codes sind bearbeitbar.")
 
-    actions = [parse_action_lenient(code) for code in data.actions]
+    actions: list[dict[str, Any]] = []
+    for code in data.actions:
+        actions.extend(parse_scout_code(code))
     event.payload = {**event.payload, "actions": actions}
     db.commit()
     return {"seq": event.seq, "actions": actions}
@@ -163,7 +165,9 @@ def start_set(match_id: int, data: StartSetRequest, db: Session = Depends(get_db
 @router.post("/rally")
 def record_rally(match_id: int, data: RallyRequest, db: Session = Depends(get_db), _writer: User = Depends(require_writer)) -> dict[str, Any]:
     match = _load_match(match_id, db)
-    actions = [parse_action_lenient(code) for code in data.actions]
+    actions: list[dict[str, Any]] = []
+    for code in data.actions:
+        actions.extend(parse_scout_code(code))
     return _append_event(match, "rally", {"winner": data.winner, "actions": actions}, db)
 
 

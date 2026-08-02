@@ -140,11 +140,26 @@ const historyRows = computed(() => {
   return rows;
 });
 
+// A compound code (e.g. a serve+reception combo, "*3S14.11#") expands into
+// two linked action entries that share the same raw_code — de-duplicating
+// here re-derives the original list of typed codes the user would recognize
+// (and re-submit), instead of repeating a compound code's text twice.
+function distinctRawCodes(entry) {
+  const seen = new Set();
+  const codes = [];
+  for (const action of entry.actions) {
+    if (seen.has(action.raw_code)) continue;
+    seen.add(action.raw_code);
+    codes.push(action.raw_code);
+  }
+  return codes;
+}
+
 function startEditHistory(seq) {
   const entry = history.value.find((e) => e.seq === seq);
   if (!entry) return;
   editingSeq.value = seq;
-  editingText.value = entry.actions.map((a) => a.raw_code).join(" ");
+  editingText.value = distinctRawCodes(entry).join(" ");
 }
 
 function cancelEditHistory() {
@@ -168,12 +183,14 @@ async function saveEditHistory(seq) {
 // Removes a single mis-scouted action from its rally (re-sends the remaining
 // raw codes to the same correction endpoint used for text edits — no
 // dedicated delete endpoint needed). May leave the rally with zero actions.
+// Deleting either half of a compound code removes both — they came from one
+// typed code and re-submitting just one half's text would re-expand into
+// the same pair again, undoing the deletion.
 async function deleteHistoryAction(seq, actionIndex) {
   const entry = history.value.find((e) => e.seq === seq);
   if (!entry) return;
-  const actions = entry.actions
-    .filter((_, i) => i !== actionIndex)
-    .map((a) => a.raw_code);
+  const targetRawCode = entry.actions[actionIndex].raw_code;
+  const actions = distinctRawCodes(entry).filter((code) => code !== targetRawCode);
   error.value = "";
   try {
     await api.correctHistoryActions(props.id, seq, { actions });

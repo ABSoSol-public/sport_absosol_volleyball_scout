@@ -111,14 +111,20 @@ Historylog-Version.
 
 **Löschen einer einzelnen Aktion** hat bewusst **keinen** eigenen Endpunkt:
 das Frontend berechnet die verbleibende Rohcode-Liste (aktuelle Liste minus
-den zu löschenden Index) und schickt sie an denselben `PATCH`-Endpunkt —
-identisch zum Text-Korrektur-Flow, nur mit einer clientseitig vorbereiteten
-Liste statt Freitext. `HistoryActionsUpdate.actions` darf daher auch leer
-sein (kein `min_length`), damit auch die letzte verbliebene Aktion eines
-Ballwechsels entfernt werden kann; ein `rally`-Event mit null Aktionen bleibt
-gültig (`RallyRequest.actions` ist ebenfalls optional) und bekommt im
-Frontend eine eigene Platzhalterzeile („– kein Scout-Code –"), damit Zeit/
-Punktestand sichtbar und der Eintrag weiterhin editierbar bleiben.
+den zu löschenden Eintrag, siehe `distinctRawCodes` in `LiveScoutView.vue`)
+und schickt sie an denselben `PATCH`-Endpunkt — identisch zum
+Text-Korrektur-Flow, nur mit einer clientseitig vorbereiteten Liste statt
+Freitext. `HistoryActionsUpdate.actions` darf daher auch leer sein (kein
+`min_length`), damit auch die letzte verbliebene Aktion eines Ballwechsels
+entfernt werden kann; ein `rally`-Event mit null Aktionen bleibt gültig
+(`RallyRequest.actions` ist ebenfalls optional) und bekommt im Frontend eine
+eigene Platzhalterzeile („– kein Scout-Code –"), damit Zeit/Punktestand
+sichtbar und der Eintrag weiterhin editierbar bleiben. Da ein Compound-Code
+(siehe unten) zwei Aktionszeilen mit **identischem** `raw_code` erzeugt,
+gruppiert `distinctRawCodes` nach `raw_code` statt nach Array-Index — löschen
+einer der beiden Hälften entfernt automatisch beide (erneutes Einsenden nur
+einer Hälfte würde sonst denselben Compound-Code erneut zu zwei Zeilen
+expandieren und die Löschung rückgängig machen).
 
 **Nachsichtige Code-Auswertung** (`parse_action_lenient` in
 `app/engine/scout_code.py`, Nutzerfeedback: „sieh das Scoutfeld wie ein
@@ -131,8 +137,32 @@ Felder `null`) statt die komplette Anfrage per 422 abzulehnen — sonst würde
 ein einzelner Tippfehler unter mehreren Codes den ganzen Ballwechsel samt
 Punktvergabe verwerfen. Die strikte `parse_action` bleibt unverändert
 bestehen (u. a. von `parse_action_lenient` selbst und den Parser-eigenen
-Tests genutzt); nur die beiden API-Einstiegspunkte, die frei getippten Text
-persistieren, wurden auf die nachsichtige Variante umgestellt.
+Tests genutzt).
+
+**Compound Codes** (DataVolleys eigener Begriff für den „."-Trenner,
+verifiziert per Web-Recherche gegen thevolleyballanalyst.com, 2026-08-02):
+`parse_scout_code` (`app/engine/scout_code.py`) ist der neue gemeinsame
+Einstiegspunkt für beide API-Endpunkte, die frei getippten Text persistieren
+(`POST …/live/rally`, `PATCH …/live/history/{seq}`) — er liefert **eine
+Liste** von ein oder zwei Aktions-Dicts statt eines einzelnen. Ohne „."
+delegiert er unverändert an `parse_action_lenient` (Liste mit einem
+Element). Enthält der Code einen „.", wird er in `<Kopf>.<Empfänger><Wertung>`
+zerlegt; ergibt der Kopf beim strikten `parse_action` einen gültigen
+Aufschlag (`skill == "S"`), wird daraus **Aufschlag+Annahme** — zwei
+verknüpfte Einträge (beide mit demselben `raw_code`, dem vollständigen
+Compound-Code): der Aufschlag mit einer aus der Annahme-Wertung
+**abgeleiteten** Bewertung (nie direkt geschrieben, siehe
+`_SERVE_EVAL_FROM_RECEPTION`-Tabelle und die Domänenregeln des Nutzers vom
+selben Tag) und die Annahme (Skill `R`, Seite = Gegenseite des Aufschlägers,
+mit der tatsächlich beobachteten Wertung). Andere Compound-Code-Varianten
+(Angriff+Block, Angriff+Abwehr laut Recherche ebenfalls real existent) sind
+**bewusst nicht** unterstützt — die einzige Web-Quelle dafür verwendete einen
+abweichenden Skill-Buchstaben („V" statt des hier verwendeten „A") und ließ
+offen, ob das eine persönliche Abkürzung des Autors oder echter DataVolley-
+Standard ist; ohne eine ebenso präzise, nutzerbestätigte Regel wie für
+Aufschlag+Annahme bleibt das ein bewusst unimplementierter Folgeschritt statt
+einer Rätselrate-Implementierung. Nicht erkannte „."-Codes fallen weiterhin
+auf den nachsichtigen Rohcode-Pfad zurück (ein einzelner Eintrag, wie oben).
 
 ## Match-Engine (`app/engine/match_engine.py`)
 

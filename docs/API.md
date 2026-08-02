@@ -270,6 +270,15 @@ korrigierbar/löschbar (siehe `GET`/`PATCH …/live/history` unten). Die Engine
 übernimmt Punktvergabe, Side-Out, Rotation, Satz- und Matchende — unabhängig
 davon, ob einzelne Codes geparst werden konnten.
 
+Ein Code mit „."-Trenner (DataVolleys **Compound Code**, z. B. `*5S14.11#`)
+kann zu **zwei** Einträgen in `actions` werden statt einem: aktuell
+unterstützt für Aufschlag+Annahme — der Aufschlag bekommt eine aus der
+Annahme-Wertung abgeleitete Bewertung (steht nie direkt im Code), die Annahme
+einen eigenen Eintrag mit Skill `R` auf der Gegenseite. Andere Compound-Code-
+Varianten (Angriff+Block/-Abwehr) werden (noch) nicht zerlegt und bleiben
+Rohcode. `actions.length` in der Antwort/im Historylog kann daher **größer**
+sein als die Anzahl der ursprünglich übergebenen Codes.
+
 ### `POST …/live/substitution`
 ```json
 { "side": "home", "player_out": 7, "player_in": 19 }

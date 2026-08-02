@@ -8,11 +8,17 @@ Beispiele: ``5SQ=``, ``a7AT#``, ``*08RQ#``, ``14AH+45``, ``14AH+45B``.
 Vollständige Referenz: ../recherche/Data_Volley_4_Funktionsanalyse.md, Abschnitt 3.
 Die Subzone (A–D) verfeinert die Zielzone auf 1,5×1,5 m und ist damit die
 eigentliche Richtungsangabe (Startzone → Zielzone+Subzone) — siehe Abschnitt 3.2
-der Recherche sowie `frontend/src/components/VolleyballCourt.vue`. Kombinations-/
-Setter-Call-Codes (Advanced-Code-Feld 7–8) werden hier bewusst noch nicht
-unterstützt (mehrdeutig in der kompakten Direkteingabe ohne weiteres Trennzeichen);
-das folgt mit dem Klickpfad-System (Roadmap 2.5). Unbekannte Restzeichen bleiben
-im Rohcode erhalten und werden mitgespeichert.
+der Recherche sowie `frontend/src/components/VolleyballCourt.vue`.
+
+Zusätzlich unterstützt `parse_scout_code` den DataVolley-„Compound Code" für
+Aufschlag+Annahme (Punkt-Trenner, z. B. ``*3SQ16.11=``) — zerlegt ihn in zwei
+verknüpfte Aktionen, siehe die Kommentare bei `_SERVE_EVAL_FROM_RECEPTION`
+weiter unten. Andere Compound-Code-Varianten (Angriff+Block, Angriff+Abwehr)
+sind bewusst **nicht** unterstützt — dafür fehlen (Stand jetzt) ebenso
+präzise, nutzerbestätigte Domänenregeln wie für Aufschlag+Annahme; nicht
+erkannte bzw. unbekannte Codes bleiben im Rohcode erhalten und werden
+nachsichtig mitgespeichert (`parse_action_lenient`), statt die Eingabe
+abzulehnen.
 """
 
 import re
@@ -130,3 +136,76 @@ def _guess_side(code: str, default_side: str) -> str:
     if prefix == "*":
         return "home"
     return default_side
+
+
+def _other_side(side: str) -> str:
+    return "away" if side == "home" else "home"
+
+
+# DataVolley calls the "." notation below a "compound code": it links a serve
+# to the paired reception in one token instead of two, e.g. "*3SQ16.11=".
+# The serve's own evaluation is never written in this form — it's implied by
+# the reception rating (a serve is only as good as the pass it allows), see
+# the domain rules this table is built from (user, 2026-08-02):
+#   reception "="  (ace / no play)      -> serve "#"
+#   reception "-"  (weak pass)          -> serve "+"
+#   reception "/"  (uncontrolled pass)  -> serve "/"
+#   reception "#" or "+" (good/perfect) -> serve "-" (scout picks which one
+#                                          matches what they actually saw)
+_SERVE_EVAL_FROM_RECEPTION = {
+    "=": "#",
+    "-": "+",
+    "/": "/",
+    "#": "-",
+    "+": "-",
+}
+
+_RECEIVER_TAIL = re.compile(r"^(?P<number>\d{1,2})(?P<evaluation>[\#\+\!\-\/\=])$")
+
+
+def parse_scout_code(code: str, default_side: str = "home") -> list[dict[str, Any]]:
+    """Parses one user-typed scout-code token, expanding a serve+reception
+    compound code into its two linked actions. Never raises.
+
+    Only the serve+reception compound is decomposed here — DataVolley also
+    has compound forms for attack+block/attack+dig, but those aren't
+    implemented yet (no equally precise, confirmed domain rules for them at
+    the time of writing; see docs/ARCHITEKTUR.md). Anything that isn't a
+    recognised serve+reception compound falls back to the plain
+    `parse_action_lenient` path (a single dict, same as any other code).
+    """
+    stripped = code.strip()
+    if "." in stripped:
+        head, _dot, tail = stripped.partition(".")
+        tail_match = _RECEIVER_TAIL.match(tail.strip())
+        if tail_match:
+            try:
+                serve = parse_action(head, default_side)
+            except (ScoutCodeError, IndexError):
+                serve = None
+            if serve is not None and serve.skill == "S":
+                reception_eval = tail_match.group("evaluation")
+                serve_with_eval = ParsedAction(
+                    raw_code=stripped,
+                    side=serve.side,
+                    player_number=serve.player_number,
+                    skill=serve.skill,
+                    hit_type=serve.hit_type,
+                    evaluation=_SERVE_EVAL_FROM_RECEPTION.get(reception_eval),
+                    start_zone=serve.start_zone,
+                    end_zone=serve.end_zone,
+                    subzone=serve.subzone,
+                )
+                reception = ParsedAction(
+                    raw_code=stripped,
+                    side=_other_side(serve.side),
+                    player_number=int(tail_match.group("number")),
+                    skill="R",
+                    hit_type=None,
+                    evaluation=reception_eval,
+                    start_zone=None,
+                    end_zone=None,
+                    subzone=None,
+                )
+                return [serve_with_eval.__dict__, reception.__dict__]
+    return [parse_action_lenient(code, default_side)]
