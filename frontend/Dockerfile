@@ -3,6 +3,7 @@ WORKDIR /build
 COPY package.json package-lock.json* ./
 RUN npm install
 COPY vite.config.js index.html ./
+COPY public public
 COPY src src
 RUN npm run build
 
