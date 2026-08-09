@@ -150,6 +150,11 @@ class ScoutAction(Base):
     attack_combination: Mapped[str | None] = mapped_column(String(4), nullable=True)
     target_attack: Mapped[str | None] = mapped_column(String(1), nullable=True)
     subzone: Mapped[str | None] = mapped_column(String(1), nullable=True)  # A B C D
+    # Wanduhrzeit der Eingabe (DVW-Feld 7, sp_timestamp_input, kombiniert mit dem
+    # Match-Datum) — macht importierte Aktionen zeitlich vergleichbar mit den
+    # `created_at`-Zeitstempeln der live-gescouteten `live_events` (Roadmap 2.6).
+    # Nullable, da ältere/unvollständige DVW-Dateien das Feld auslassen können.
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     rally: Mapped[Rally] = relationship(back_populates="actions")
 

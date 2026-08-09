@@ -9,7 +9,7 @@ Punktestände abgebildet.
 """
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -151,6 +151,11 @@ def import_dvw(db: Session, parsed: DvwFile) -> ImportResult:
                     attack_combination=action.attack_combination,
                     target_attack=action.target_attack,
                     subzone=action.subzone,
+                    created_at=(
+                        datetime.combine(match.match_date, action.timestamp)
+                        if action.timestamp
+                        else None
+                    ),
                 )
             )
         actions_total += len(pending)

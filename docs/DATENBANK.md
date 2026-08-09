@@ -15,7 +15,9 @@ SQLite in-memory. ORM-Definitionen: `backend/app/models/entities.py`.
   je Ballwechsel für die Rotationsanalyse, Version 2.2), `0004_player_edit_youth_flag.py`
   (Jugendspieler-Kennzeichnung, Version 2.4), `0005_scout_action_direction_fields.py`
   (Subzone/Angriffskombination, Version 2.5), `0006_player_primary_setter.py`
-  (Referenz-Zuspieler fürs Rotationscode, Version 2.5).
+  (Referenz-Zuspieler fürs Rotationscode, Version 2.5),
+  `0007_scout_action_timestamp.py` (Zeitstempel je Aktion für DVW-Import,
+  Version 2.6).
 - Im Container laufen Migrationen **automatisch** beim Start
   (`docker-entrypoint.sh`: auf DB warten → `alembic upgrade head` → uvicorn).
 - Neue Migration anlegen: `cd backend && .venv/bin/alembic revision -m "…"`
@@ -157,6 +159,7 @@ wird nie gespeichert, sondern bei jedem Zugriff per Replay rekonstruiert
 | attack_combination | VARCHAR(4) NULL | Angriffskombination bzw. Setter-Call (Advanced Code 7–8), z. B. `X5`, `K1` — nur beim DVW-Import befüllt (Migration 0005) |
 | target_attack | CHAR(1) NULL | Ziel-Angriff: F(ront)/C(enter)/B(ack)/P(ipe)/S(etter) (Advanced Code 9) |
 | subzone | CHAR(1) NULL | A–D, verfeinert `end_zone` als Richtungsangabe (Advanced Code 12) — sowohl beim Import als auch aus der Live-Direkteingabe (`14AH+45B`) |
+| created_at | DATETIME NULL | Wanduhrzeit der Eingabe (DVW-Feld 7 `sp_timestamp_input`, kombiniert mit `matches.match_date`; Migration 0007, Version 2.6) — macht importierte Aktionen zeitlich vergleichbar mit `live_events.created_at` der live-gescouteten Ballwechsel. `NULL`, wenn die Quelldatei das Feld nicht befüllt hat. |
 
 Die Spalten spiegeln den DataVolley-**Main-Code**; für Advanced/Extended-Anteile
 (Kombinationen, Setter-Calls, Subzonen) werden bei Bedarf Spalten ergänzt —

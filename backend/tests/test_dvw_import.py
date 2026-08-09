@@ -1,6 +1,12 @@
+from datetime import datetime, time
+
 from fastapi.testclient import TestClient
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.dvw import parse_dvw
+from app.dvw.parser import _parse_timestamp
+from app.models import ScoutAction
 
 # Synthetische Minimal-Datei nach docs/DVW-FORMAT.md (anonymisierte Struktur,
 # angelehnt an reale Beispiele — keine echten Personen).
@@ -68,6 +74,10 @@ def test_parse_dvw_sample() -> None:
     assert attack.attack_combination == "X5"
     assert attack.target_attack == "F"
     assert attack.subzone == "B"
+    assert attack.timestamp == time(19, 31, 27)
+
+    serve = next(r for r in parsed.scout_rows if r.skill == "S")
+    assert serve.timestamp == time(19, 31, 21)
 
     reception = next(r for r in parsed.scout_rows if r.skill == "R")
     assert reception.attack_combination is None
@@ -75,6 +85,32 @@ def test_parse_dvw_sample() -> None:
 
     point = next(r for r in parsed.scout_rows if r.point_side)
     assert point.point_side == "home" and (point.home_score, point.away_score) == (1, 0)
+
+
+def test_parse_timestamp_is_lenient() -> None:
+    assert _parse_timestamp("19.31.21") == time(19, 31, 21)
+    assert _parse_timestamp("") is None
+    assert _parse_timestamp("   ") is None
+    assert _parse_timestamp("not-a-time") is None
+
+
+def test_import_stores_action_timestamps(client: TestClient, db_session: Session) -> None:
+    # Same wall-clock timestamp DVW carries per action (field 7) combined with
+    # the match date, so imported actions become comparable to live_events'
+    # created_at (Roadmap 2.6).
+    response = client.post(
+        "/api/imports/dvw",
+        files={"file": ("test.dvw", DVW_SAMPLE.encode("cp1252"), "text/plain")},
+    )
+    assert response.status_code == 201, response.text
+
+    actions = list(
+        db_session.scalars(select(ScoutAction).order_by(ScoutAction.rally_id, ScoutAction.seq))
+    )
+    assert len(actions) == 4
+    assert all(a.created_at is not None for a in actions)
+    serve = next(a for a in actions if a.skill == "S")
+    assert serve.created_at == datetime(2010, 10, 17, 19, 31, 21)
 
 
 def test_import_endpoint(client: TestClient) -> None:

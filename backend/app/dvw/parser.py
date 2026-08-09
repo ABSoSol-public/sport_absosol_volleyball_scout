@@ -10,7 +10,7 @@ Subzone) werden seit Version 2.5 mit ausgelesen, nicht nur Start-/Endzone.
 
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 SECTION_RE = re.compile(r"^\[3([A-Z-]+)\]$")
 MAIN_CODE_RE = re.compile(
@@ -76,6 +76,10 @@ class DvwScoutRow:
     # docs/DVW-FORMAT.md Abschnitt 2.12: sp_home_setter_pos/sp_guest_setter_pos):
     home_setter_position: int | None = None
     away_setter_position: int | None = None
+    # Wanduhrzeit der Eingabe (Feld 7, sp_timestamp_input, Format HH.MM.SS) —
+    # Grundlage für Video-Synchronisation und Vergleichbarkeit mit den
+    # Zeitstempeln (`created_at`) der live-gescouteten `live_events` (Roadmap 2.6).
+    timestamp: time | None = None
 
 
 @dataclass
@@ -115,6 +119,16 @@ def _sections(text: str) -> dict[str, list[str]]:
 def _clean(value: str) -> str | None:
     value = value.strip()
     return value if value and value != "~" else None
+
+
+def _parse_timestamp(value: str) -> time | None:
+    value = value.strip()
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%H.%M.%S").time()
+    except ValueError:
+        return None
 
 
 def _parse_team(line: str) -> DvwTeam:
@@ -229,6 +243,7 @@ def parse_dvw(content: bytes) -> DvwFile:
         row.away_setter_position = (
             int(fields[10]) if len(fields) > 10 and fields[10].strip().isdigit() else None
         )
+        row.timestamp = _parse_timestamp(fields[7]) if len(fields) > 7 else None
         result.scout_rows.append(row)
 
     return result

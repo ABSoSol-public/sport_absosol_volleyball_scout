@@ -195,6 +195,22 @@ bleiben im Rohcode erhalten. Advanced-/Extended-/Compound-Codes folgen laut
 Roadmap; vollständige Referenz in der DV4-Tiefenrecherche
 (`../recherche/Data_Volley_4_Funktionsanalyse.md`, außerhalb des Repos).
 
+## Zeitstempel je Aktion beim DVW-Import (`app/dvw/parser.py`, Roadmap 2.6)
+
+`DvwScoutRow.timestamp` übernimmt DVW-Feld 7 (`sp_timestamp_input`,
+`HH.MM.SS`, siehe `docs/DVW-FORMAT.md` Abschnitt 2.12) über
+`_parse_timestamp` — nachsichtig wie an anderer Stelle im Projekt üblich
+(fehlt oder ist das Feld nicht parsebar, wird `None` zurückgegeben statt
+einer Exception; ältere/unvollständige DVW-Dateien lassen dieses Feld
+mitunter aus). Der Importer (`app/dvw/importer.py`) kombiniert diese
+Uhrzeit mit `Match.match_date` zu einem vollständigen `datetime` und
+schreibt ihn auf `ScoutAction.created_at` (Migration `0007`) — bewusst
+derselbe Feldname wie bei `LiveEvent.created_at`, damit importierte und
+live-gescoutete Aktionen zeitlich vergleichbar sind (Grundlage für eine
+spätere Video-Synchronisation, siehe Feld 12 `sp_time_ticks_video` in
+`docs/DVW-FORMAT.md`, dessen Auswertung noch offen ist). `ScoutAction.
+created_at` ist `NULL`, wenn die Quelldatei kein Feld 7 trägt.
+
 ## Statistik-Engine (`app/engine/statistics.py`)
 
 Reine Berechnungslogik (DB-frei, wie `match_engine.py`) über den Analyse-Strang
