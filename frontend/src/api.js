@@ -47,6 +47,27 @@ export const api = {
   getMatchSets: (id) => request(`/matches/${id}/sets`),
   getMatchStatistics: (id) => request(`/matches/${id}/statistics`),
 
+  exportMatchDvw: async (id) => {
+    const response = await fetch(`${BASE}/matches/${id}/export`);
+    if (response.status === 401) {
+      window.location.href = "/login";
+      throw new Error("Nicht angemeldet.");
+    }
+    if (!response.ok) {
+      let detail = response.statusText;
+      try {
+        const body = await response.json();
+        detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+      } catch {
+        /* Antwort ohne JSON-Body */
+      }
+      throw new Error(detail);
+    }
+    const disposition = response.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    return { blob: await response.blob(), filename: match ? match[1] : `match-${id}.dvw` };
+  },
+
   importDvw: async (file) => {
     const body = new FormData();
     body.append("file", file);

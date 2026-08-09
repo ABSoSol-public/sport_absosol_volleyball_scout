@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import require_writer
 from app.db.session import get_db
+from app.dvw.exporter import build_export_match, render_dvw
 from app.engine.statistics import ActionRow, RallyRow, compute_match_statistics
 from app.models import Match, MatchSet, Rally, Team, User
 from app.schemas.match import MatchCreate, MatchRead, MatchSetRead
@@ -51,6 +53,29 @@ def get_match_sets(match_id: int, db: Session = Depends(get_db)) -> list[MatchSe
         db.scalars(
             select(MatchSet).where(MatchSet.match_id == match_id).order_by(MatchSet.number)
         )
+    )
+
+
+@router.get("/{match_id}/export")
+def export_match_dvw(match_id: int, db: Session = Depends(get_db)) -> Response:
+    """DVW-kompatibler Export (Roadmap 2.6) — funktioniert für beide Stränge
+    gleichwertig (Analyse-Strang aus DVW-Import, Live-Strang aus `live_events`),
+    siehe `app/dvw/exporter.py` für Details und bekannte Einschränkungen.
+    """
+    match = db.get(Match, match_id)
+    if match is None:
+        raise HTTPException(404, "Match nicht gefunden.")
+    export = build_export_match(db, match)
+    if export is None:
+        raise HTTPException(
+            422, "Für dieses Match liegen weder Analyse- noch Live-Scouting-Daten vor."
+        )
+    content = render_dvw(export)
+    filename = f"{export.home_team_code}_{export.away_team_code}_{match.match_date}.dvw"
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="text/plain",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

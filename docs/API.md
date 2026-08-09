@@ -140,6 +140,20 @@ Leere Liste, wenn noch keine Sätze importiert/übernommen wurden (z. B. bei ein
 live gescouteten Match vor Roadmap 2.7) — kein Fehler, nur 404 bei unbekannter
 `match_id`. Basis für den Match-Browser im Frontend (`MatchDetailView.vue`).
 
+### `GET /api/matches/{match_id}/export`
+DVW-kompatibler Export (Roadmap 2.6) — funktioniert für **beide** Datenstränge
+gleichwertig: Matches mit Analyse-Strang-Daten (`match_sets`/`rallies`/
+`scout_actions`, z. B. Reexport eines zuvor importierten Matches) **und**
+live-gescoutete Matches ohne Analyse-Daten (per Replay von `live_events`).
+Liefert die Datei als Download (`Content-Disposition: attachment`,
+`text/plain`, Dateiname `<HeimCode>_<GastCode>_<Datum>.dvw`). 404 bei
+unbekannter `match_id`, 422 wenn für das Match weder Analyse- noch
+Live-Scouting-Daten existieren (z. B. ein gerade erst angelegtes, noch nicht
+gestartetes Match). Kein `require_writer` — reiner Lesevorgang, auch für
+`viewer`-Rollen erlaubt. Details zur Feldrekonstruktion und bekannten
+Einschränkungen (keine volle Aufstellung je Ballwechsel, `>LUp`-Zeilen)
+siehe `backend/app/dvw/exporter.py` und `docs/ARCHITEKTUR.md`.
+
 ---
 
 ## DVW-Import

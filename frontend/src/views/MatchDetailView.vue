@@ -54,6 +54,25 @@ async function loadRoster(teamId, side) {
   }
 }
 
+// DVW-Export funktioniert fuer beide Straenge (Analyse- und Live-Scouting,
+// siehe backend/app/dvw/exporter.py) -- ueber Blob statt schlichtem <a href>,
+// damit ein 422 (kein Match ohne jegliche Scout-Daten) als Fehlermeldung
+// statt als kaputter Download landet.
+async function exportDvw() {
+  error.value = "";
+  try {
+    const { blob, filename } = await api.exportMatchDvw(props.id);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    error.value = e.message;
+  }
+}
+
 async function load() {
   loading.value = true;
   error.value = "";
@@ -88,6 +107,9 @@ onMounted(load);
     <p class="muted">
       {{ match.match_date }}<span v-if="match.competition"> · {{ match.competition }}</span>
     </p>
+    <button v-if="match.status !== 'scheduled'" class="secondary" @click="exportDvw">
+      Als DVW exportieren
+    </button>
 
     <div v-if="sets.length === 0" class="card empty-state">
       <p>Für dieses Match liegen noch keine Analyse-Daten vor.</p>

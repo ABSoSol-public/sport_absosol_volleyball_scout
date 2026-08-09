@@ -211,6 +211,61 @@ spätere Video-Synchronisation, siehe Feld 12 `sp_time_ticks_video` in
 `docs/DVW-FORMAT.md`, dessen Auswertung noch offen ist). `ScoutAction.
 created_at` ist `NULL`, wenn die Quelldatei kein Feld 7 trägt.
 
+## DVW-Export (`app/dvw/exporter.py`, Roadmap 2.6)
+
+Rückweg vom Domänenmodell zum DVW-Zeilenformat, für **beide** Stränge
+gleichwertig (Nutzerwunsch 2026-08-09: „Reexport ist auch wichtig, beides"):
+`build_export_from_analyse_strang` (Team/Player/MatchSet/Rally/ScoutAction —
+z. B. Reexport eines zuvor importierten Matches) und
+`build_export_from_live_events` (Replay von `live_events` über
+`MatchEngine`, dieselbe inkrementelle Punktestand-Herleitung wie
+`GET .../live/history`, hier fürs `[3SCOUT]`-Zeilenformat statt für die
+Historylog-Tabelle). Beide münden in dieselbe `ExportMatch`-Zwischen-
+darstellung, die `render_dvw` in Text umsetzt — ein Renderer für beide
+Quellen. `build_export_match` wählt automatisch den Strang mit Daten
+(Analyse-Strang hat Vorrang, falls je beide gleichzeitig befüllt wären —
+aktuell nie der Fall vor Roadmap 2.7).
+
+**Codes werden aus den Einzelfeldern neu zusammengesetzt, nicht als Rohtext
+wiederverwendet** — ein erster Anlauf (Rohtext + nur Präfix ergänzen) zeigte
+beim Testen zwei echte Bugs: (1) die *strikte* DVW-Grammatik
+(`MAIN_CODE_RE` in `parser.py`) verlangt eine zweistellige, nullgepolsterte
+Spielernummer (`\d{2}`), die *nachsichtige* Live-Grammatik erlaubt aber
+einstellige Nummern ohne Polsterung — unveränderter Reexport eines Codes
+wie `5SQ-` wäre beim Reimport nicht mehr parsebar gewesen. (2) Die DVW-
+Cmb-/Target-/Zonen-Suffixfelder sind **positionsfest** (`_parse_code` in
+`parser.py`) — Start-/Endzone lassen sich nicht direkt anhängen, ohne die
+(bei Live-Aktionen nicht vorhandenen) Cmb-/Target-Platzhalter (`~~~`) davor.
+Ein Aufschlag-Annahme-Compound-Code (`.`-Trenner, siehe Compound-Code-
+Abschnitt zum Klickpfad weiter oben) wird deshalb bewusst in **zwei
+eigenständige, gültige** DVW-Zeilen aufgelöst (Aufschlag + Annahme) statt
+als unparsebare Compound-Notation reexportiert zu werden — für andere
+DataVolley-Tools sind zwei echte Skill-Zeilen wertvoller als ein Rohstring,
+den nur diese App selbst versteht. Für nicht geparste (nachsichtige
+Rohcode-Fallback-)Aktionen ohne Skill kann kein gültiger Main-Code
+rekonstruiert werden — die bleiben als präfixierter Rohtext erhalten und
+runden beim Reimport ggf. nicht sauber.
+
+Die Zuspieler-Rotationsposition je Ballwechsel (`home/away_setter_position`)
+wird für den Live-Strang aus Kader + tatsächlicher Aufstellung berechnet
+(`_setter_zone`, portiert dieselbe Regel wie `setterZone()` in
+`RotationCourt.vue`) — für den Analyse-Strang steht sie bereits auf
+`Rally.home/away_setter_position`.
+
+**Bekannte Einschränkung** (beide Stränge): keine der beiden Domänentabellen
+trackt eine volle 6-Spieler-Aufstellung je Ballwechsel, nur die Zuspieler-
+Rotationsposition — die DVW-Felder 14–25 (Spielernummern je Zone) bleiben
+deshalb leer statt erfunden, ebenso `>LUp`-Aufstellungs-Deklarationszeilen.
+Das Ergebnis ist eine syntaktisch gültige, mit dem eigenen Parser
+vollständig rückführbare DVW-Datei mit allen Kern-Scoutdaten — kein
+bit-identisches Abbild dessen, was DataVolley selbst erzeugen würde.
+
+`GET /api/matches/{id}/export` (`app/api/matches.py`) liefert das Ergebnis
+als Datei-Download; das Frontend (`MatchDetailView.vue`) lädt es per
+`fetch`+Blob statt eines schlichten `<a href>`, damit ein 422 (kein Match
+ohne jegliche Scout-Daten) als Fehlermeldung statt als kaputter Download
+landet.
+
 ## Statistik-Engine (`app/engine/statistics.py`)
 
 Reine Berechnungslogik (DB-frei, wie `match_engine.py`) über den Analyse-Strang
