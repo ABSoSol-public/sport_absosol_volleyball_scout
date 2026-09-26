@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.dvw.parser import DvwFile, DvwPlayer, DvwTeam
 from app.models import Match, MatchSet, Player, Rally, ScoutAction, Team
+from app.seasons import get_or_create_season
 
 
 @dataclass
@@ -68,12 +69,14 @@ def import_dvw(db: Session, parsed: DvwFile) -> ImportResult:
     players_created = _ensure_players(db, home_team, parsed.home_players)
     players_created += _ensure_players(db, away_team, parsed.away_players)
 
+    match_date = parsed.match_date or date.today()
     match = Match(
-        match_date=parsed.match_date or date.today(),
+        match_date=match_date,
         competition=parsed.competition,
         home_team_id=home_team.id,
         away_team_id=away_team.id,
         status="finished",
+        season_id=get_or_create_season(db, match_date).id,
     )
     db.add(match)
     db.flush()

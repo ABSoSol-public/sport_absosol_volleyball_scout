@@ -642,3 +642,22 @@ table.compact td {
   color: #b3202c;
   font-weight: 600;
 }
+
+/* FIFA-Style Skill-Karte (PlayerProfileView.vue) */
+.skill-card-overall {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.skill-card-overall-label {
+  color: #5b6b7b;
+  font-size: 0.9rem;
+}
+
+.skill-card-overall-value {
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+}

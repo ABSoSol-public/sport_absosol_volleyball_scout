@@ -3,6 +3,7 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.engine.disciplines import DEFAULT_DISCIPLINE, Discipline
+from app.schemas.season import SeasonRead
 from app.schemas.team import TeamRead
 
 
@@ -38,6 +39,7 @@ class MatchRead(BaseModel):
     tiebreak_points: int
     substitutions_per_set: int
     timeouts_per_set: int
+    season: SeasonRead | None
     home_team: TeamRead
     away_team: TeamRead
 

@@ -143,7 +143,8 @@ eingebettete Team-Objekte sowie den `status` (`scheduled` | `live` | `finished`)
 übernimmt der Preset-Wert; ein gesetzter Wert überschreibt ihn einzeln (z. B.
 `discipline: "beach_2"` mit `points_per_set: 15` für einen Verein, der Beach
 abweichend spielt). Heim- ≠ Gastteam, sonst 422. Antwort (`MatchRead`) enthält
-die aufgelösten Werte, nie `null`.
+die aufgelösten Werte, nie `null`, sowie ein automatisch aus `match_date`
+ermitteltes/angelegtes `season` (siehe `GET /api/seasons`, `docs/SPIELERPROFILE.md`).
 
 ### `GET /api/matches/{match_id}`
 Einzelnes Match im selben Format wie die Liste.
@@ -244,6 +245,65 @@ liefert leere Listen/`null`-Quoten, nicht 404 (404 nur bei unbekannter
   aus dem DVW-Feld `sp_home/guest_setter_pos`, je Team separat für eigenen
   Aufschlag und eigene Annahme.
 - Quoten sind `null` (statt `0`), wenn die zugehörige Ballwechsel-Anzahl `0` ist.
+
+## Spielerprofile
+
+Ein physischer Spieler wird über `(team_id, Trikotnummer)` adressiert (keine
+eigene `player_id`-FK in `scout_actions`), siehe `docs/SPIELERPROFILE.md`.
+Beide Endpunkte nehmen dieselben Query-Parameter: `discipline` (Default
+`hall_6`, siehe `GET /api/disciplines`) und optional `season_id` (siehe
+`GET /api/seasons`) — weggelassen liefert die gesamte Karriere in dieser
+Disziplin. 404 bei unbekanntem Team, nicht im Kader geführter Trikotnummer
+oder unbekannter `season_id`.
+
+### `GET /api/seasons`
+Alle Saisons (1. Juli – 30. Juni), absteigend nach Startdatum:
+```json
+[{ "id": 3, "label": "2025/2026", "start_date": "2025-07-01", "end_date": "2026-06-30" }]
+```
+
+### `GET /api/players/{team_id}/{number}/profile`
+Karrierestatistik + Zonentendenzen ("Playbook"):
+```json
+{
+  "team_id": 1, "number": 7, "last_name": "Musterfrau", "first_name": "Erika",
+  "position": "Außenangreifer", "discipline": "hall_6", "season": null,
+  "career": { "serve": {...}, "reception": {...}, "attack": {...}, "block": {...},
+              "matches": 12, "actions": 340 },
+  "by_season": [{ "season": { "id": 3, "label": "2025/2026", ... }, "stats": { "...gleiches Schema wie career..." } }],
+  "attack_tendencies": [{ "start_zone": 4, "end_zone": 6, "attempts": 40,
+                          "positive": 18, "errors": 3, "blocked": 5,
+                          "positive_pct": 45.0, "efficiency": 0.25 }],
+  "serve_tendencies": [{ "start_zone": 1, "end_zone": 5, "attempts": 20,
+                         "positive": 4, "errors": 2, "blocked": 0,
+                         "positive_pct": 20.0, "efficiency": 0.1 }]
+}
+```
+`career`/`by_season[].stats` nutzen dasselbe Serve-/Reception-/Attack-/Block-
+Schema wie `GET /api/matches/{match_id}/statistics` oben. Zonentendenzen
+absteigend nach Häufigkeit sortiert; `positive` = Ass (Aufschlag) bzw. Kill
+(Angriff), `blocked` nur bei Angriff relevant (Bewertung `/`).
+
+### `GET /api/players/{team_id}/{number}/card`
+FIFA-Style Skill-Karte — Perzentilrang (0–100) je Kategorie gegen alle
+Spieler derselben Disziplin(+Saison) in der Datenbank, siehe
+`docs/SPIELERPROFILE.md` für die Bewertungsformel:
+```json
+{
+  "team_id": 1, "number": 7, "discipline": "hall_6", "season": null,
+  "categories": {
+    "serve": { "metric": 0.42, "rating": 78.5, "sample_size": 24, "population_size": 11 },
+    "reception": { "metric": null, "rating": null, "sample_size": 2, "population_size": 8 },
+    "attack": { "metric": 0.31, "rating": 65.0, "sample_size": 40, "population_size": 9 },
+    "block": { "metric": 0.1, "rating": 55.0, "sample_size": 10, "population_size": 6 }
+  },
+  "overall": 66.2
+}
+```
+`rating`/`metric` sind `null`, wenn die eigene Stichprobe unter dem
+Mindestwert liegt (`app/player_card.py::MIN_SAMPLE`) — keine erfundene Note.
+`overall` ist der Mittelwert der Kategorien mit Wertung, `null` wenn keine
+Kategorie genug Daten hat.
 
 ## Live-Scouting
 

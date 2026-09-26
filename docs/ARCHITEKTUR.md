@@ -32,6 +32,9 @@ backend/
     dvw/               DVW-Parser + -Importer (Analyse-Strang, siehe docs/DVW-FORMAT.md)
     api/               FastAPI-Router: auth, teams, matches, live, imports, meta (Disziplin-Presets)
     analyse_sync.py    Ableitung Analyse-Strang aus live_events (Roadmap 2.7, siehe unten)
+    seasons.py         Saison-Zuordnung (1. Jul.-30. Jun.), siehe Spielerprofile unten
+    player_data.py     Lädt scout_actions eines Spielers über alle Matches (Spielerprofile)
+    player_card.py     Skill-Karte: Perzentilrang gegen alle Spieler derselben Disziplin
     cli.py             Verwaltungs-CLI (create-user, via ../create-user.sh)
     main.py            App-Factory, CORS, Router-Registrierung, /health
   alembic/             Migrationen (laufen beim Container-Start automatisch)
@@ -41,7 +44,8 @@ frontend/
   src/
     api.js             zentraler Fetch-Wrapper für alle Backend-Aufrufe
     router/            Vue-Router (History-Mode)
-    views/             TeamsView, MatchesView, MatchDetailView (Match-Browser), LiveScoutView
+    views/             TeamsView, MatchesView, MatchDetailView (Match-Browser), LiveScoutView,
+                       PlayerProfileView (Karriereprofil + Skill-Karte)
     components/        VolleyballCourt (Zonen-/Richtungs-Helfer), RotationCourt
                        (Rotationsanzeige, siehe unten)
     styles.css         globales Styling (kein CSS-Framework)
@@ -235,6 +239,30 @@ Volleyball wird nicht nur 6:6 in der Halle gespielt: Jugend-Kleinfeldformen
 
 Vollständige Recherche (Quellen, Presets im Detail, bewusste Lücken wie die
 nicht automatisierte „2-Punkte-in-Folge"-Jugendsonderregel): `docs/SPIELFORMATE.md`.
+
+## Spielerprofile: Karrierestatistik, Skill-Karte & Zonentendenzen
+
+Nutzerwunsch: ein spielerbasiertes „Playbook" (Profiling über mehrere
+Saisons, nach NFL-Vorbild) plus eine dynamisch gegen die komplette Datenbank
+berechnete „Fähigkeiten-Kachel" (FIFA-Vorbild). Neue Module:
+`app/engine/player_profile.py` (DB-frei: Aggregation über beliebig viele
+Aktionen + Zonentendenzen, teilt die Skill-Formeln mit
+`app/engine/statistics.py` statt sie zu duplizieren — dafür wurden
+`_add_serve`/… dort zu `add_serve_action`/… öffentlich gemacht),
+`app/player_data.py` (lädt die `scout_actions` eines Spielers über alle
+Matches), `app/player_card.py` (Perzentilrang-Bewertung gegen alle Spieler
+derselben Disziplin), `app/seasons.py` (Saison-Zuordnung 1. Jul.–30. Jun.,
+neues `Season`-Modell, Migration `0009`, mit Backfill für Altdaten) sowie
+`app/api/players.py`/`app/api/seasons.py`. Ein physischer Spieler wird dabei
+über `(team_id, Trikotnummer)` identifiziert — `scout_actions` trägt keine
+`player_id`-FK (dasselbe Muster wie beim DVW-Export, siehe oben).
+
+Die Skill-Karte vergleicht **innerhalb derselben Disziplin** (ein
+Beach-Aufschlag ist nicht mit einem Hallen-Aufschlag vergleichbar) und
+verlangt eine Mindest-Stichprobe je Kategorie, bevor sie überhaupt eine
+Wertung ausgibt — keine erfundenen Zahlen bei wenigen Daten. Vollständige
+Herleitung der Bewertungsformel, der Playbook-Tendenzen und bewusster Lücken
+(kein Ranking/Leaderboard, keine DV4-Noten): `docs/SPIELERPROFILE.md`.
 
 ## Scout-Code-Parser (`app/engine/scout_code.py`)
 

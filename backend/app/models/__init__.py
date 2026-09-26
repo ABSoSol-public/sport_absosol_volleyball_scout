@@ -5,6 +5,7 @@ from app.models.entities import (
     Player,
     Rally,
     ScoutAction,
+    Season,
     Team,
     User,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "Player",
     "Rally",
     "ScoutAction",
+    "Season",
     "Team",
     "User",
 ]

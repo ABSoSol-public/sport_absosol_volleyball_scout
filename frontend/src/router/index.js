@@ -4,6 +4,7 @@ import MatchesView from "../views/MatchesView.vue";
 import MatchDetailView from "../views/MatchDetailView.vue";
 import LiveScoutView from "../views/LiveScoutView.vue";
 import LoginView from "../views/LoginView.vue";
+import PlayerProfileView from "../views/PlayerProfileView.vue";
 
 export default createRouter({
   history: createWebHistory(),
@@ -14,5 +15,6 @@ export default createRouter({
     { path: "/matches", component: MatchesView },
     { path: "/matches/:id", component: MatchDetailView, props: true },
     { path: "/matches/:id/live", component: LiveScoutView, props: true, meta: { wide: true } },
+    { path: "/players/:teamId/:number", component: PlayerProfileView, props: true },
   ],
 });

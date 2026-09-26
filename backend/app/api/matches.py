@@ -10,6 +10,7 @@ from app.dvw.exporter import build_export_match, render_dvw
 from app.engine.disciplines import DISCIPLINE_PRESETS
 from app.engine.statistics import ActionRow, RallyRow, compute_match_statistics
 from app.models import LiveEvent, Match, MatchSet, Rally, Team, User
+from app.seasons import get_or_create_season
 from app.schemas.match import MatchCreate, MatchRead, MatchSetRead
 from app.schemas.statistics import MatchStatisticsRead
 
@@ -70,6 +71,7 @@ def create_match(
         if fields[rule_field] is None:
             fields[rule_field] = getattr(preset, rule_field)
     fields["discipline"] = data.discipline.value
+    fields["season_id"] = get_or_create_season(db, data.match_date).id
     match = Match(**fields)
     db.add(match)
     db.commit()

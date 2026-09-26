@@ -166,6 +166,43 @@ class MatchStatistics:
     rotations: dict[Side, list[RotationStats]]
 
 
+# Per-Skill-Zuordnungsformeln — ausgelagert, damit `app/player_profile.py`
+# (Karrierestatistik über mehrere Matches/Saisons) dieselbe Logik ohne
+# Duplikation wiederverwenden kann, statt sie ein zweites Mal abzutippen.
+def add_serve_action(stats: PlayerServeStats, evaluation: str | None) -> None:
+    stats.total += 1
+    if evaluation == "=":
+        stats.errors += 1
+    elif evaluation == "#":
+        stats.aces += 1
+
+
+def add_reception_action(stats: PlayerReceptionStats, evaluation: str | None) -> None:
+    stats.total += 1
+    if evaluation == "=":
+        stats.errors += 1
+    if evaluation in ("+", "#"):
+        stats.positive += 1
+    if evaluation == "#":
+        stats.perfect += 1
+
+
+def add_attack_action(stats: PlayerAttackStats, evaluation: str | None) -> None:
+    stats.total += 1
+    if evaluation == "=":
+        stats.errors += 1
+    elif evaluation == "/":
+        stats.blocked += 1
+    elif evaluation == "#":
+        stats.kills += 1
+
+
+def add_block_action(stats: PlayerBlockStats, evaluation: str | None) -> None:
+    stats.total += 1
+    if evaluation == "#":
+        stats.points += 1
+
+
 def compute_match_statistics(rallies: list[RallyRow]) -> MatchStatistics:
     serve: dict[Side, dict[int, PlayerServeStats]] = {side: {} for side in SIDES}
     reception: dict[Side, dict[int, PlayerReceptionStats]] = {side: {} for side in SIDES}
@@ -206,37 +243,25 @@ def compute_match_statistics(rallies: list[RallyRow]) -> MatchStatistics:
             num = action.player_number
             side_stats = action.side
             if action.skill == "S":
-                stats = serve[side_stats].setdefault(num, PlayerServeStats(player_number=num))
-                stats.total += 1
-                if action.evaluation == "=":
-                    stats.errors += 1
-                elif action.evaluation == "#":
-                    stats.aces += 1
-            elif action.skill == "R":
-                rec = reception[side_stats].setdefault(
-                    num, PlayerReceptionStats(player_number=num)
+                add_serve_action(
+                    serve[side_stats].setdefault(num, PlayerServeStats(player_number=num)),
+                    action.evaluation,
                 )
-                rec.total += 1
-                if action.evaluation == "=":
-                    rec.errors += 1
-                if action.evaluation in ("+", "#"):
-                    rec.positive += 1
-                if action.evaluation == "#":
-                    rec.perfect += 1
+            elif action.skill == "R":
+                add_reception_action(
+                    reception[side_stats].setdefault(num, PlayerReceptionStats(player_number=num)),
+                    action.evaluation,
+                )
             elif action.skill == "A":
-                atk = attack[side_stats].setdefault(num, PlayerAttackStats(player_number=num))
-                atk.total += 1
-                if action.evaluation == "=":
-                    atk.errors += 1
-                elif action.evaluation == "/":
-                    atk.blocked += 1
-                elif action.evaluation == "#":
-                    atk.kills += 1
+                add_attack_action(
+                    attack[side_stats].setdefault(num, PlayerAttackStats(player_number=num)),
+                    action.evaluation,
+                )
             elif action.skill == "B":
-                blk = block[side_stats].setdefault(num, PlayerBlockStats(player_number=num))
-                blk.total += 1
-                if action.evaluation == "#":
-                    blk.points += 1
+                add_block_action(
+                    block[side_stats].setdefault(num, PlayerBlockStats(player_number=num)),
+                    action.evaluation,
+                )
 
         # Punktquelle: die den Ballwechsel beendende Aktion ist immer die letzte in der
         # Liste (Importer schließt die Rally genau an dieser Stelle ab).

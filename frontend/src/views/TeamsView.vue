@@ -227,7 +227,12 @@ onMounted(loadTeams);
             <td>{{ player.is_libero ? "L" : "" }}</td>
             <td>{{ player.is_youth_player ? "J" : "" }}</td>
             <td>{{ player.is_primary_setter ? "Z" : "" }}</td>
-            <td><button class="secondary" @click="startEditPlayer(player)">Bearbeiten</button></td>
+            <td>
+              <RouterLink :to="`/players/${selectedTeam.id}/${player.number}`">
+                <button class="secondary">Profil</button>
+              </RouterLink>
+              <button class="secondary" @click="startEditPlayer(player)">Bearbeiten</button>
+            </td>
           </template>
         </tr>
       </tbody>

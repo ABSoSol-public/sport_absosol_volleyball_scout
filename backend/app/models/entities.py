@@ -68,6 +68,22 @@ class Player(Base):
     team: Mapped[Team] = relationship(back_populates="players")
 
 
+class Season(Base):
+    """Saison im Sinne von Jul.–Jun. (`app/seasons.py::season_bounds_for_date`,
+    Grundlage für die Karriere-Spielerprofile über mehrere Saisons hinweg,
+    siehe docs/SPIELERPROFILE.md). Wird beim Anlegen/Importieren eines Matches
+    automatisch aus `Match.match_date` ermittelt/erzeugt — kein eigener
+    Verwaltungs-Endpunkt zum manuellen Anlegen nötig.
+    """
+
+    __tablename__ = "seasons"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    label: Mapped[str] = mapped_column(String(20), unique=True)  # z. B. "2025/2026"
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+
+
 class Match(Base):
     __tablename__ = "matches"
 
@@ -76,6 +92,7 @@ class Match(Base):
     competition: Mapped[str] = mapped_column(String(120), default="")
     home_team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
     away_team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
+    season_id: Mapped[int | None] = mapped_column(ForeignKey("seasons.id"), nullable=True)
     # Disziplin (Halle 6:6/4:4/3:3/2:2, Beach 2:2) — bestimmt die Preset-Werte
     # unten beim Anlegen (app/engine/disciplines.py), bleibt danach nur noch
     # Anzeige-/Auswertungskontext (z. B. Referenzgruppe für Spielerprofile).
@@ -92,6 +109,7 @@ class Match(Base):
 
     home_team: Mapped[Team] = relationship(foreign_keys=[home_team_id])
     away_team: Mapped[Team] = relationship(foreign_keys=[away_team_id])
+    season: Mapped[Season | None] = relationship()
     sets: Mapped[list["MatchSet"]] = relationship(
         back_populates="match", cascade="all, delete-orphan", order_by="MatchSet.number"
     )

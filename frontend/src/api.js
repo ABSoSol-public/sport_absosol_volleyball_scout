@@ -109,4 +109,20 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+
+  listSeasons: () => request("/seasons"),
+  getPlayerProfile: (teamId, number, { discipline, seasonId } = {}) => {
+    const params = new URLSearchParams();
+    if (discipline) params.set("discipline", discipline);
+    if (seasonId) params.set("season_id", seasonId);
+    const query = params.toString();
+    return request(`/players/${teamId}/${number}/profile${query ? `?${query}` : ""}`);
+  },
+  getPlayerCard: (teamId, number, { discipline, seasonId } = {}) => {
+    const params = new URLSearchParams();
+    if (discipline) params.set("discipline", discipline);
+    if (seasonId) params.set("season_id", seasonId);
+    const query = params.toString();
+    return request(`/players/${teamId}/${number}/card${query ? `?${query}` : ""}`);
+  },
 };

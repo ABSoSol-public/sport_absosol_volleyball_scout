@@ -19,7 +19,9 @@ SQLite in-memory. ORM-Definitionen: `backend/app/models/entities.py`.
   `0007_scout_action_timestamp.py` (Zeitstempel je Aktion für DVW-Import,
   Version 2.6), `0008_disciplines_and_setter_system.py` (Mehrfach-Formate
   `matches.discipline`/`players_on_court`, `teams.setter_system` —
-  siehe `docs/SPIELFORMATE.md`).
+  siehe `docs/SPIELFORMATE.md`), `0009_seasons.py` (neue `seasons`-Tabelle +
+  `matches.season_id`, mit Backfill bestehender Matches — siehe
+  `docs/SPIELERPROFILE.md`).
 - Im Container laufen Migrationen **automatisch** beim Start
   (`docker-entrypoint.sh`: auf DB warten → `alembic upgrade head` → uvicorn).
 - Neue Migration anlegen: `cd backend && .venv/bin/alembic revision -m "…"`
@@ -82,6 +84,7 @@ Anlage/Passwort-Reset ausschließlich über `./create-user.sh` (keine Registrier
 | match_date | DATE | |
 | competition | VARCHAR(120) | |
 | home_team_id / away_team_id | INT FK→teams.id | |
+| season_id | INT FK→seasons.id NULL | Migration 0009, automatisch aus `match_date` ermittelt/angelegt (`app/seasons.py::get_or_create_season`) — Grundlage für Spielerprofile über mehrere Saisons, siehe `docs/SPIELERPROFILE.md` |
 | discipline | VARCHAR(16) | `hall_6`/`hall_4`/`hall_3`/`hall_2`/`beach_2` (Migration 0008, Default `hall_6`) — Preset-Herkunft der Regel-Spalten, siehe `docs/SPIELFORMATE.md` |
 | players_on_court | INT | Default 6 (Migration 0008) — Feldbesetzung, geht direkt in `Rules.players_on_court` |
 | best_of | INT | Default 5 |
@@ -94,6 +97,18 @@ Anlage/Passwort-Reset ausschließlich über `./create-user.sh` (keine Registrier
 
 Die Regel-Spalten machen jedes Match eigenständig reproduzierbar — die Engine
 wird pro Match aus genau diesen Werten parametrisiert.
+
+### `seasons` (Migration 0009)
+| Spalte | Typ | Hinweise |
+|---|---|---|
+| id | INT PK | |
+| label | VARCHAR(20) | UNIQUE, z. B. `2025/2026` |
+| start_date | DATE | immer 1. Juli |
+| end_date | DATE | immer 30. Juni des Folgejahres |
+
+Nie manuell angelegt — `app/seasons.py::get_or_create_season()` erzeugt/findet
+die passende Zeile automatisch aus `Match.match_date` beim Anlegen/Import.
+Grundlage für Spielerprofile über mehrere Saisons, siehe `docs/SPIELERPROFILE.md`.
 
 ### `live_events` — Quelle der Wahrheit (Event-Sourcing)
 | Spalte | Typ | Hinweise |
