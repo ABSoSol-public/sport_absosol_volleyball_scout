@@ -112,11 +112,7 @@ onMounted(load);
     </button>
 
     <div v-if="sets.length === 0" class="card empty-state">
-      <p>Für dieses Match liegen noch keine Analyse-Daten vor.</p>
-      <p class="muted">
-        Vermutlich ein live gescoutetes Match, dessen Ballwechsel noch nicht in den
-        Statistik-Strang übernommen wurden.
-      </p>
+      <p>Für dieses Match wurden noch keine Ballwechsel erfasst.</p>
       <RouterLink :to="`/matches/${match.id}/live`"><button>Zur Live-Ansicht</button></RouterLink>
     </div>
 

@@ -31,6 +31,7 @@ backend/
     engine/            Spiellogik + Statistik (DB-frei, siehe unten)
     dvw/               DVW-Parser + -Importer (Analyse-Strang, siehe docs/DVW-FORMAT.md)
     api/               FastAPI-Router: auth, teams, matches, live, imports
+    analyse_sync.py    Ableitung Analyse-Strang aus live_events (Roadmap 2.7, siehe unten)
     cli.py             Verwaltungs-CLI (create-user, via ../create-user.sh)
     main.py            App-Factory, CORS, Router-Registrierung, /health
   alembic/             Migrationen (laufen beim Container-Start automatisch)
@@ -107,7 +108,9 @@ Andere Event-Typen (`substitution`, `timeout`, `correct_lineup`, `start_set`)
 sind über diesen Weg bewusst **nicht** editierbar (422), da eine Korrektur dort
 den nachfolgenden Spielzustand (Wechsel-/Auszeitlimits, Rotation) verändern
 würde und ein echtes Replay bräuchte — außerhalb des Umfangs dieser ersten
-Historylog-Version.
+Historylog-Version. Seit Roadmap 2.7 stößt die Korrektur zusätzlich
+`sync_from_live_events` an (siehe unten), damit die korrigierten Codes auch
+im Analyse-Strang (Statistik, Export) ankommen, nicht nur im Historylog.
 
 **Löschen einer einzelnen Aktion** hat bewusst **keinen** eigenen Endpunkt:
 das Frontend berechnet die verbleibende Rohcode-Liste (aktuelle Liste minus
@@ -283,11 +286,57 @@ Reine Berechnungslogik (DB-frei, wie `match_engine.py`) über den Analyse-Strang
   Abschnitt 2.12), vom DVW-Importer direkt aus der die Rally abschließenden
   Scout-Zeile übernommen.
 
-Bewusst **nicht** Teil dieser Version: Live-gescoutete Matches liefern noch keine
-Statistik (der Live-Strang schreibt nur `live_events`, die Zusammenführung in den
-Analyse-Strang folgt mit Roadmap 2.7); ebenso die DV4-„Noten" (0–10-Gesamtwertung
-mit Mindestbeteiligungsquoten) — die konkreten Zähl-/Quotenkennzahlen decken den
-Bedarf der Roadmap ab, ohne die zusätzliche Komplexität der Notenformeln.
+Seit Roadmap 2.7 (`app/analyse_sync.py`, siehe unten) liefern auch
+live-gescoutete Matches diese Statistik — ohne Unterschied zum DVW-Import,
+da beide Stränge in dieselben `rallies`/`scout_actions`-Tabellen münden.
+Bewusst weiterhin **nicht** Teil dieser Version: die DV4-„Noten"
+(0–10-Gesamtwertung mit Mindestbeteiligungsquoten) — die konkreten
+Zähl-/Quotenkennzahlen decken den Bedarf der Roadmap ab, ohne die
+zusätzliche Komplexität der Notenformeln.
+
+## Zusammenführung von Live- und Analyse-Strang (`app/analyse_sync.py`, Roadmap 2.7)
+
+Vor dieser Version schrieb das Live-Scouting ausschließlich `live_events`;
+`rallies`/`scout_actions` (und damit Statistik + Match-Browser) blieben
+DVW-Import-exklusiv. `sync_from_live_events(db, match)` schließt diese Lücke:
+sie repliziert dieselbe Replay-Logik wie
+`app/dvw/exporter.py::build_export_from_live_events` (inklusive der
+Zuspieler-Rotationsposition über das jetzt geteilte `app/engine/rotation.py::
+setter_zone`, vorher in `exporter.py` dupliziert), erzeugt daraus aber direkt
+`MatchSet`/`Rally`/`ScoutAction`-Zeilen statt einer DVW-Zwischendarstellung.
+
+Aufgerufen wird sie an jeder Stelle, die den Live-Zustand verändert
+(`app/api/live.py`: `_append_event` — also `start_set`/`rally`/
+`substitution`/`timeout`/`correct_lineup` — `undo_last_event` und die
+Historylog-Korrektur `correct_history_actions`), jeweils **nach** dem neuen
+Event und **vor** dem `commit`, in derselben Transaktion. Die Funktion ist
+dabei bewusst ein **vollständiger Rebuild** statt einer inkrementellen
+Fortschreibung: bestehende `match_sets` des Matches (cascade löscht
+`rallies`/`scout_actions`) werden zuerst gelöscht, dann aus dem kompletten
+`live_events`-Log neu aufgebaut — konsistent mit dem Event-Sourcing-Prinzip
+des Projekts (Zustand entsteht immer per Replay) und bei den hier üblichen
+Match-Größenordnungen (ein paar hundert Events) unkritisch, siehe
+„Rebuild-Kosten" oben. Da bereits jeder Request eines laufenden Satzes
+repliziert (`_rebuild`), aktualisiert sich der Analyse-Strang schon während
+des laufenden Satzes mit — ein Nebeneffekt, kein eigener Zwischenzustand.
+
+Nutzt die Session mit `autoflush=False` (siehe `app/db/session.py`): jeder
+Aufrufer muss vor `sync_from_live_events` selbst `db.flush()` aufrufen, damit
+die eigene Änderung (neues/gelöschtes Event, korrigierte `payload`) für die
+erneute Abfrage innerhalb der Funktion sichtbar ist.
+
+**Backfill für Altdaten**: Matches, die vor Einführung dieser Funktion
+live-gescoutet wurden, haben `live_events` ohne zugehörige `match_sets`.
+`app/api/matches.py::_ensure_analyse_strang_synced` prüft das bei jedem
+lesenden Zugriff auf `GET .../sets` und `GET .../statistics` und synct
+einmalig nach (danach bleibt der Live-Strang ab dem nächsten Event ohnehin
+synchron) — ein rein lesender Endpunkt darf hier schreiben, da das Ergebnis
+deterministisch aus bereits vorhandenen `live_events` abgeleitet ist, kein
+neuer Nutzerinput.
+
+Damit entfällt der bisherige Übergangszustand im Match-Browser (siehe unten):
+jedes Match mit erfassten Ballwechseln hat jetzt `match_sets`, unabhängig vom
+Strang.
 
 ## Match-Browser (`frontend/src/views/MatchDetailView.vue`)
 
@@ -298,13 +347,12 @@ Trikotnummern in der Statistiktabelle) und zeigt Endstand, Satzverlauf,
 Team-Kennzahlen (Break-/Side-Out-Quote als Balken, Punktquellen), eine
 Spieler-Statistiktabelle je Team und die Rotationsanalyse je Team.
 
-**Wichtig — Übergangszustand vor Roadmap 2.7**: Ein `finished`-Match kann aus
-zwei Strängen stammen, die aktuell getrennt sind (siehe „Kernkonzept" oben).
-Liefert `GET .../sets` eine leere Liste (live-gescoutetes Match ohne
-übernommene Analyse-Daten), zeigt die Seite statt eines leeren/irreführenden
-Panels einen Hinweis mit Link zur Live-Ansicht. Sobald 2.7 beide Stränge
-zusammenführt, entfällt dieser Sonderfall automatisch (jedes `finished`-Match
-hat dann `match_sets`).
+Ein Match kann aus zwei Strängen stammen (DVW-Import oder Live-Scouting,
+siehe „Kernkonzept" oben) — seit Roadmap 2.7 münden beide in dieselben
+`match_sets`/`rallies`/`scout_actions`-Tabellen (`app/analyse_sync.py`), die
+Seite unterscheidet also nicht mehr danach. Liefert `GET .../sets` trotzdem
+eine leere Liste (noch kein einziger Ballwechsel erfasst), zeigt die Seite
+statt eines leeren Panels einen Hinweis mit Link zur Live-Ansicht.
 
 Die Matches-Liste selbst verzweigt seit Version 2.3 nach `status`: ein
 zuvor bestehender Bug schickte **jedes** Match (auch importierte, `finished`)

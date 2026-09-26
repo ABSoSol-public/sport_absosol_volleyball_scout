@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.analyse_sync import sync_from_live_events
 from app.api.deps import require_writer
 from app.db.session import get_db
 from app.engine import MatchEngine, Rules, RuleViolation
@@ -77,6 +78,8 @@ def _append_event(
         )
     )
     match.status = "finished" if engine.match_finished else "live"
+    db.flush()  # neues Event für sync_from_live_events sichtbar machen (autoflush=False)
+    sync_from_live_events(db, match)
     db.commit()
     return engine.state()
 
@@ -152,6 +155,9 @@ def correct_history_actions(
     for code in data.actions:
         actions.extend(parse_scout_code(code))
     event.payload = {**event.payload, "actions": actions}
+    db.flush()
+    match = _load_match(match_id, db)
+    sync_from_live_events(db, match)  # Analyse-Strang mit den korrigierten Codes neu aufbauen
     db.commit()
     return {"seq": event.seq, "actions": actions}
 
@@ -211,5 +217,7 @@ def undo_last_event(
     match.status = (
         "finished" if engine.match_finished else ("live" if len(events) > 1 else "scheduled")
     )
+    db.flush()  # Löschung für sync_from_live_events sichtbar machen (autoflush=False)
+    sync_from_live_events(db, match)
     db.commit()
     return engine.state()

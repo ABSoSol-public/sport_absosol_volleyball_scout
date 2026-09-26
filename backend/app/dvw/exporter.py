@@ -46,6 +46,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.engine.match_engine import MatchEngine, Rules
+from app.engine.rotation import setter_zone
 from app.models import LiveEvent, Match, MatchSet, Player, Rally, Team
 
 GENERATOR_NAME = "ABSoSol Volleyball Scout"
@@ -316,23 +317,6 @@ def _export_players(players: list[Player]) -> list[ExportPlayer]:
 # ----------------------------------------------------------------- build: Live-Strang
 
 
-def _setter_zone(roster: list[Player], lineup: list[int]) -> int | None:
-    """Portiert dieselbe Regel wie `setterZone()` in `RotationCourt.vue`:
-    Zone des Referenz-Zuspielers, falls der auf dem Feld steht, sonst
-    Fallback auf den tatsächlich aufgestellten Zuspieler.
-    """
-    primary = next((p for p in roster if p.is_primary_setter), None)
-    setter_number = primary.number if primary and primary.number in lineup else None
-    if setter_number is None:
-        on_court = next(
-            (p for p in roster if p.position == "Zuspieler" and p.number in lineup), None
-        )
-        setter_number = on_court.number if on_court else None
-    if setter_number is None or setter_number not in lineup:
-        return None
-    return lineup.index(setter_number) + 1
-
-
 def build_export_from_live_events(db: Session, match: Match) -> ExportMatch | None:
     events = list(
         db.scalars(select(LiveEvent).where(LiveEvent.match_id == match.id).order_by(LiveEvent.seq))
@@ -399,8 +383,8 @@ def build_export_from_live_events(db: Session, match: Match) -> ExportMatch | No
                 winner_side=event.payload["winner"],
                 home_score_after=home_after,
                 away_score_after=away_after,
-                home_setter_position=_setter_zone(home_roster, lineup_home),
-                away_setter_position=_setter_zone(away_roster, lineup_away),
+                home_setter_position=setter_zone(home_roster, lineup_home),
+                away_setter_position=setter_zone(away_roster, lineup_away),
             )
         )
 
@@ -424,7 +408,11 @@ def build_export_from_live_events(db: Session, match: Match) -> ExportMatch | No
 
 
 def build_export_match(db: Session, match: Match) -> ExportMatch | None:
-    """Wählt den passenden Strang: ein Match hat aktuell nie beide gleichzeitig
-    befüllt (die Zusammenführung folgt erst mit Roadmap 2.7) — Analyse-Strang
-    hat Vorrang, falls doch einmal beides vorläge."""
+    """Wählt den passenden Strang. Seit Roadmap 2.7 (`app/analyse_sync.py`) hat
+    ein live-gescoutetes Match tatsächlich **beide** Stränge befüllt (die
+    persistierten `live_events` als Quelle der Wahrheit, `rallies`/
+    `scout_actions` als davon abgeleitete Kopie) — Analyse-Strang hat dann
+    Vorrang, liefert aber ohnehin äquivalente Daten (`build_export_from_live_events`
+    bleibt als Fallback für den unwahrscheinlichen Fall, dass der Sync einmal
+    hinterherhinkt)."""
     return build_export_from_analyse_strang(db, match) or build_export_from_live_events(db, match)

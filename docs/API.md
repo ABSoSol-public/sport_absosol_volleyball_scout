@@ -136,9 +136,10 @@ Sätze eines Matches (Analyse-Strang, `match_sets`), aufsteigend nach `number`:
 [{ "number": 1, "home_points": 25, "away_points": 20, "finished": true, "duration_minutes": 24 }]
 ```
 
-Leere Liste, wenn noch keine Sätze importiert/übernommen wurden (z. B. bei einem
-live gescouteten Match vor Roadmap 2.7) — kein Fehler, nur 404 bei unbekannter
-`match_id`. Basis für den Match-Browser im Frontend (`MatchDetailView.vue`).
+Leere Liste, wenn für das Match noch kein einziger Ballwechsel erfasst wurde —
+kein Fehler, nur 404 bei unbekannter `match_id`. Live-gescoutete Matches
+liefern hier dieselben Daten wie ein DVW-Import (`app/analyse_sync.py`,
+Roadmap 2.7). Basis für den Match-Browser im Frontend (`MatchDetailView.vue`).
 
 ### `GET /api/matches/{match_id}/export`
 DVW-kompatibler Export (Roadmap 2.6) — funktioniert für **beide** Datenstränge

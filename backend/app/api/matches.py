@@ -3,15 +3,40 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.analyse_sync import sync_from_live_events
 from app.api.deps import require_writer
 from app.db.session import get_db
 from app.dvw.exporter import build_export_match, render_dvw
 from app.engine.statistics import ActionRow, RallyRow, compute_match_statistics
-from app.models import Match, MatchSet, Rally, Team, User
+from app.models import LiveEvent, Match, MatchSet, Rally, Team, User
 from app.schemas.match import MatchCreate, MatchRead, MatchSetRead
 from app.schemas.statistics import MatchStatisticsRead
 
 router = APIRouter(prefix="/matches", tags=["matches"])
+
+
+def _ensure_analyse_strang_synced(match_id: int, db: Session) -> None:
+    """Backfill für Matches, deren `live_events` noch nie in den Analyse-Strang
+    übernommen wurden (gescoutet, bevor `app/api/live.py` `sync_from_live_events`
+    nach jedem Event aufrief — Roadmap 2.7). Ein rein lesender Zugriff
+    (`GET .../sets`, `GET .../statistics`) darf hier trotzdem schreiben: das
+    Ergebnis ist deterministisch aus `live_events` abgeleitet, kein neuer
+    Nutzerinput. Matches mit vorhandenen DVW-Importdaten sind bereits
+    synchron (kein passendes `live_events`), einmal fertiggescoutete Matches
+    bleiben es ab dem ersten Sync ebenfalls, da jedes neue Event erneut
+    synct — dieser Pfad greift also nur einmalig pro Altdaten-Match.
+    """
+    has_sets = db.scalar(select(MatchSet.id).where(MatchSet.match_id == match_id).limit(1))
+    if has_sets is not None:
+        return
+    has_events = db.scalar(select(LiveEvent.id).where(LiveEvent.match_id == match_id).limit(1))
+    if has_events is None:
+        return
+    match = db.get(Match, match_id)
+    if match is None:
+        return
+    sync_from_live_events(db, match)
+    db.commit()
 
 
 @router.get("", response_model=list[MatchRead])
@@ -49,6 +74,7 @@ def get_match(match_id: int, db: Session = Depends(get_db)) -> Match:
 def get_match_sets(match_id: int, db: Session = Depends(get_db)) -> list[MatchSet]:
     if db.get(Match, match_id) is None:
         raise HTTPException(404, "Match nicht gefunden.")
+    _ensure_analyse_strang_synced(match_id, db)
     return list(
         db.scalars(
             select(MatchSet).where(MatchSet.match_id == match_id).order_by(MatchSet.number)
@@ -83,6 +109,7 @@ def export_match_dvw(match_id: int, db: Session = Depends(get_db)) -> Response:
 def get_match_statistics(match_id: int, db: Session = Depends(get_db)) -> MatchStatisticsRead:
     if db.get(Match, match_id) is None:
         raise HTTPException(404, "Match nicht gefunden.")
+    _ensure_analyse_strang_synced(match_id, db)
 
     rallies = db.scalars(
         select(Rally)
