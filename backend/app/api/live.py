@@ -17,10 +17,11 @@ from app.api.deps import require_writer
 from app.db.session import get_db
 from app.engine import MatchEngine, Rules, RuleViolation
 from app.engine.scout_code import parse_scout_code
-from app.models import LiveEvent, Match, User
+from app.models import LiveEvent, Match, Player, User
 from app.schemas.live import (
     HistoryActionsUpdate,
     LineupCorrectionRequest,
+    LiberoReplacementRequest,
     RallyRequest,
     StartSetRequest,
     SubstitutionRequest,
@@ -185,6 +186,41 @@ def record_substitution(
 ) -> dict[str, Any]:
     match = _load_match(match_id, db)
     return _append_event(match, "substitution", data.model_dump(), db)
+
+
+@router.post("/libero-replacement")
+def record_libero_replacement(
+    match_id: int, data: LiberoReplacementRequest, db: Session = Depends(get_db),
+    _writer: User = Depends(require_writer),
+) -> dict[str, Any]:
+    """Libero-Wechsel — eigener Event-Typ statt `/substitution`, weil er laut
+    FIVB-Regelwerk nicht gegen das Wechsellimit zählt (siehe
+    `MatchEngine._on_libero_replacement`). Die Engine selbst kennt keine
+    Spielerrollen (roster-unabhängig, siehe docs/ARCHITEKTUR.md) — die
+    Prüfung, dass **genau einer** der beiden Spieler (rein oder raus) im
+    Kader als Libero markiert ist, übernimmt deshalb diese API-Schicht, die
+    Zugriff auf `Player.is_libero` hat. Absichtlich symmetrisch geprüft: ein
+    Libero-Wechsel tauscht in beide Richtungen einen Libero gegen einen
+    Nicht-Libero (Libero rein *oder* Libero raus, nie beide/keiner).
+    """
+    match = _load_match(match_id, db)
+    team_id = match.home_team_id if data.side == "home" else match.away_team_id
+    out_player = db.scalar(
+        select(Player).where(Player.team_id == team_id, Player.number == data.player_out)
+    )
+    in_player = db.scalar(
+        select(Player).where(Player.team_id == team_id, Player.number == data.player_in)
+    )
+    out_is_libero = out_player.is_libero if out_player else False
+    in_is_libero = in_player.is_libero if in_player else False
+    if out_is_libero == in_is_libero:
+        raise HTTPException(
+            422,
+            "Ein Libero-Wechsel muss einen Libero gegen einen Nicht-Libero tauschen — "
+            f"genau einer der beiden Spieler ({data.player_out}, {data.player_in}) muss "
+            "im Kader als Libero markiert sein.",
+        )
+    return _append_event(match, "libero_replacement", data.model_dump(), db)
 
 
 @router.post("/timeout")

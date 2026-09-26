@@ -27,6 +27,12 @@ class SubstitutionRequest(BaseModel):
     player_in: int
 
 
+class LiberoReplacementRequest(BaseModel):
+    side: Side
+    player_out: int
+    player_in: int
+
+
 class TimeoutRequest(BaseModel):
     side: Side
 

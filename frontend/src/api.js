@@ -95,6 +95,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  liberoReplacement: (matchId, data) =>
+    request(`/matches/${matchId}/live/libero-replacement`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   timeout: (matchId, data) =>
     request(`/matches/${matchId}/live/timeout`, { method: "POST", body: JSON.stringify(data) }),
   undo: (matchId) => request(`/matches/${matchId}/live/undo`, { method: "POST" }),

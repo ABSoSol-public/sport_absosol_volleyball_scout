@@ -11,6 +11,13 @@ Regelumfang (DV4-Vorbild, Abschnitt "Regulation" der Funktionsanalyse):
 - Side-Out: gewinnt das annehmende Team den Ballwechsel, erhält es Aufschlagrecht
   und rotiert im Uhrzeigersinn
 - Wechsel-Limit pro Satz und Team, Auszeiten-Limit pro Satz und Team
+- Rückwechsel-Regel: einmal getauschte Spielerpaare bleiben für den Satz
+  aneinander gebunden (FIVB-Regelwerk, verifiziert per Web-Recherche gegen
+  mehrere Quellen, siehe docs/ARCHITEKTUR.md) — wer für wen rausging, darf
+  später nur durch genau diesen wieder ersetzt werden.
+- Libero-Wechsel als eigener Event-Typ (`libero_replacement`), unbegrenzt
+  und **nicht** gegen `substitutions_per_set` zählend (FIVB-Ausnahmeregel).
+  Bewusst vereinfacht — siehe `_on_libero_replacement` für die Details.
 - Aufstellungen: 6 eindeutige Spieler, Zonenreihenfolge [1, 6, 5, 4, 3, 2] intern
   als Liste ab Zone 1 gegen den Uhrzeigersinn gespeichert: Index 0 = Zone 1 usw.
 """
@@ -52,6 +59,15 @@ class SetState:
     timeouts: dict[Side, int] = field(default_factory=lambda: {"home": 0, "away": 0})
     rally_count: int = 0
     finished: bool = False
+    # Rückwechsel-Regel: einmal getauschte Paare bleiben für den Satz gesperrt
+    # (`{player: gebundener Partner}`, symmetrisch gepflegt) — separat je
+    # Seite, da Trikotnummern über Teams hinweg nicht eindeutig sind.
+    substitution_pairs: dict[Side, dict[int, int]] = field(
+        default_factory=lambda: {"home": {}, "away": {}}
+    )
+    # Libero-Wechsel zählen bewusst NICHT gegen substitutions_per_set (siehe
+    # _on_libero_replacement) — eigener Zähler, rein für die Anzeige.
+    libero_replacements: dict[Side, int] = field(default_factory=lambda: {"home": 0, "away": 0})
 
 
 def _other(side: Side) -> Side:
@@ -72,6 +88,7 @@ class MatchEngine:
             "start_set": self._on_start_set,
             "rally": self._on_rally,
             "substitution": self._on_substitution,
+            "libero_replacement": self._on_libero_replacement,
             "timeout": self._on_timeout,
             "correct_lineup": self._on_correct_lineup,
         }
@@ -147,8 +164,64 @@ class MatchEngine:
         if player_in in lineup:
             raise RuleViolation(f"Spieler {player_in} steht bereits auf dem Feld.")
 
+        self._check_and_bind_substitution_pair(current, side, player_out, player_in)
         lineup[lineup.index(player_out)] = player_in
         current.substitutions[side] += 1
+
+    def _check_and_bind_substitution_pair(
+        self, current: SetState, side: Side, player_out: int, player_in: int
+    ) -> None:
+        """Rückwechsel-Regel: ein einmal getauschtes Paar bleibt für den
+        restlichen Satz aneinander gebunden — Spieler A darf, nachdem er
+        durch B ersetzt wurde, später nur wieder für B eingewechselt werden
+        (nicht für einen anderen Spieler), und umgekehrt. Nicht auf
+        Libero-Wechsel angewendet (siehe `_on_libero_replacement`).
+        """
+        pairs = current.substitution_pairs[side]
+        bound_out = pairs.get(player_out)
+        if bound_out is not None and bound_out != player_in:
+            raise RuleViolation(
+                f"Rückwechsel-Regel: Spieler {player_out} darf diesen Satz nur mit "
+                f"Spieler {bound_out} getauscht werden."
+            )
+        bound_in = pairs.get(player_in)
+        if bound_in is not None and bound_in != player_out:
+            raise RuleViolation(
+                f"Rückwechsel-Regel: Spieler {player_in} darf diesen Satz nur mit "
+                f"Spieler {bound_in} getauscht werden."
+            )
+        pairs[player_out] = player_in
+        pairs[player_in] = player_out
+
+    def _on_libero_replacement(self, payload: dict[str, Any]) -> None:
+        """Libero-Wechsel — eigener Event-Typ statt regulärer Substitution,
+        weil er laut FIVB-Regelwerk **nicht** gegen `substitutions_per_set`
+        zählt und beliebig oft pro Satz stattfinden darf (per Web-Recherche
+        gegen mehrere Quellen verifiziert, siehe docs/ARCHITEKTUR.md).
+
+        Bewusst **vereinfacht** — folgende Detailregeln werden nicht
+        durchgesetzt (Aufgabe der aufrufenden API-Schicht/des Scouts, nicht
+        der roster-unabhängigen Engine, siehe unten):
+        - dass `player_in` tatsächlich als Libero im Kader geführt wird
+          (die Engine kennt nur Trikotnummern, keine Spielerrollen);
+        - die Rückwechsel-Regel für Libero-Paare (ein Libero darf laut
+          Regelwerk nur durch genau den Spieler zurückgetauscht werden, den
+          er ersetzt hat);
+        - die Beschränkung auf Hinterfeld-Spieler beim Einwechseln.
+        """
+        current = self._require_running_set()
+        side = _validate_side(payload.get("side"))
+        player_out = int(payload["player_out"])
+        player_in = int(payload["player_in"])
+
+        lineup = current.lineups[side]
+        if player_out not in lineup:
+            raise RuleViolation(f"Spieler {player_out} steht nicht auf dem Feld.")
+        if player_in in lineup:
+            raise RuleViolation(f"Spieler {player_in} steht bereits auf dem Feld.")
+
+        lineup[lineup.index(player_out)] = player_in
+        current.libero_replacements[side] += 1
 
     def _on_correct_lineup(self, payload: dict[str, Any]) -> None:
         # Reine Korrektur einer falsch erfassten Aufstellung/Rotation (z. B. verpasste
@@ -223,6 +296,7 @@ class MatchEngine:
                 "serving": current.serving,
                 "lineups": {side: list(current.lineups[side]) for side in SIDES},
                 "substitutions": dict(current.substitutions),
+                "libero_replacements": dict(current.libero_replacements),
                 "timeouts": dict(current.timeouts),
                 "rally_count": current.rally_count,
             },

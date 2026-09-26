@@ -380,6 +380,19 @@ const substitute = () =>
       player_in: sub.value.player_in,
     })
   );
+// Libero-Wechsel: zählt laut FIVB-Regelwerk nicht gegen das Wechsellimit und
+// ist unbegrenzt oft möglich (siehe app/engine/match_engine.py). Eigener
+// Button statt eines Häkchens neben "Wechsel", um Fehlklicks auf einen
+// vollwertigen Wechsel (der das Limit belastet) zu vermeiden — nutzt
+// dieselbe Team/Raus/Rein-Auswahl.
+const liberoReplace = () =>
+  run(() =>
+    api.liberoReplacement(props.id, {
+      side: sub.value.side,
+      player_out: sub.value.player_out,
+      player_in: sub.value.player_in,
+    })
+  );
 
 onMounted(refresh);
 </script>
@@ -594,6 +607,17 @@ onMounted(refresh);
           </select>
         </div>
         <button class="secondary" @click="substitute">Wechsel</button>
+        <button
+          class="secondary"
+          title="Zählt nicht gegen das Wechsellimit, unbegrenzt oft möglich — nur zulässig, wenn genau einer der beiden Spieler im Kader als Libero markiert ist"
+          @click="liberoReplace"
+        >
+          Libero-Wechsel
+        </button>
+      </div>
+      <div style="text-align: center; margin-top: 0.4rem">
+        Libero-Wechsel {{ match.home_team.code }}: {{ current.libero_replacements.home }} ·
+        {{ match.away_team.code }}: {{ current.libero_replacements.away }}
       </div>
     </div>
 

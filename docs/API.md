@@ -327,6 +327,7 @@ Jede Eingabe wird als Event persistiert (Event-Sourcing, siehe
     "serving": "away",
     "lineups": { "home": [7,12,4,9,2,15], "away": [8,11,6,1,10,3] },
     "substitutions": { "home": 1, "away": 0 },
+    "libero_replacements": { "home": 2, "away": 0 },
     "timeouts": { "home": 0, "away": 1 },
     "rally_count": 7
   }
@@ -377,6 +378,21 @@ sein als die Anzahl der ursprünglich übergebenen Codes.
 ```json
 { "side": "home", "player_out": 7, "player_in": 19 }
 ```
+422 bei Wechsellimit erreicht, bei nicht auf dem Feld stehendem
+`player_out`/bereits auf dem Feld stehendem `player_in`, oder bei Verstoß
+gegen die Rückwechsel-Regel (ein einmal getauschtes Paar bleibt für den
+Satz aneinander gebunden, siehe `docs/ARCHITEKTUR.md`).
+
+### `POST …/live/libero-replacement`
+```json
+{ "side": "home", "player_out": 7, "player_in": 20 }
+```
+Wie `/substitution`, aber **ohne** Wechsellimit und unbegrenzt oft pro Satz
+möglich (FIVB-Ausnahmeregel). 422 zusätzlich, wenn nicht **genau einer** der
+beiden Spieler im Kader als Libero markiert ist (`Player.is_libero`) — ein
+Libero-Wechsel tauscht immer einen Libero gegen einen Nicht-Libero, in
+beide Richtungen. Siehe `docs/ARCHITEKTUR.md` für bewusste Vereinfachungen
+(keine Rückwechsel-Bindung für Libero-Paare, keine Hinterfeld-Beschränkung).
 
 ### `POST …/live/timeout`
 ```json

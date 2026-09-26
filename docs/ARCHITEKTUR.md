@@ -186,14 +186,41 @@ oder Sonderformate möglich):
   Rotation = Links-Shift.
 - **Wechsel**: Limit pro Satz/Team (Default 6); validiert, dass der ausgewechselte
   Spieler auf dem Feld und der eingewechselte nicht auf dem Feld steht.
+- **Rückwechsel-Regel** (per Web-Recherche verifiziert — u. a.
+  [Volleyballmag: How Volleyball Substitutions Work](https://volleyballmag.com/how-volleyball-substitutions-work-the-full-breakdown/),
+  [JudgeMate: Volleyball Substitution Rules (FIVB 2025)](https://www.judgemate.com/en/guides/volleyball-substitution-rules)):
+  ein einmal getauschtes Paar bleibt für den restlichen Satz
+  aneinander gebunden (`_check_and_bind_substitution_pair`) — wer für wen
+  rausging, darf später nur durch genau diesen wieder ersetzt werden, nicht
+  durch einen Dritten. Gilt nicht für Libero-Wechsel (eigener Event-Typ,
+  siehe unten).
+- **Libero-Wechsel** (`libero_replacement`, eigener Event-Typ statt
+  `substitution`): zählt **nicht** gegen `substitutions_per_set` und ist
+  unbegrenzt oft pro Satz möglich (FIVB-Ausnahmeregel, per Web-Recherche
+  gegen die offiziellen [FIVB Volleyball Rules 2025-2028](https://www.fivb.com/wp-content/uploads/2025/01/FIVB-Volleyball_Rules2025_2028-EN-v05.pdf)
+  verifiziert: Libero-Wechsel sind unbegrenzt und zählen nicht gegen das
+  reguläre Wechsellimit; Libero darf laut Regelwerk außerdem nicht
+  aufschlagen, keinen Ball komplett oberhalb der Netzkante angreifen und
+  nicht blocken — diese Skill-Beschränkungen werden hier bewusst **nicht**
+  durchgesetzt, siehe unten). Die Engine selbst
+  bleibt roster-unabhängig und kennt daher keine Spielerrollen — dass
+  `player_in`/`player_out` tatsächlich (genau einer von beiden) im Kader als
+  Libero markiert ist, prüft die API-Schicht (`app/api/live.py::
+  record_libero_replacement`, hat Zugriff auf `Player.is_libero`). Bewusst
+  **nicht** abgebildet: die Rückwechsel-Regel für Libero-Paare (laut
+  Regelwerk darf ein Libero nur durch genau den Spieler zurückgetauscht
+  werden, den er ersetzt hat) und die Beschränkung auf Hinterfeld-Spieler.
 - **Auszeiten**: Limit pro Satz/Team (Default 2).
 - **Aufstellungen**: exakt `Rules.players_on_court` (Default 6) eindeutige
   Spielernummern pro Team — seit den Mehrfach-Formaten (siehe unten) auch
   2/3/4, nicht mehr fest 6.
 
-Bewusst noch **nicht** abgebildet (spätere Versionen): Libero-Tauschlogik,
-Rückwechsel-Regel (Spieler darf nur auf seine Position zurück), Setter-Tracking
-(`*z`/`az`-Äquivalent), Phasen Side-Out/Break für die Statistik.
+Bewusst noch **nicht** abgebildet (spätere Versionen): Setter-Tracking
+(`*z`/`az`-Äquivalent — weitgehend bereits über `is_primary_setter` +
+dessen Fallback abgedeckt, siehe `app/engine/rotation.py`), Phasen
+Side-Out/Break für die Statistik, Libero-Serve-/Angriffs-/Block-Beschränkungen
+(würden die Scout-Code-Eingabe einschränken — bewusst nicht, siehe die
+„nachsichtige" Parser-Philosophie oben).
 
 ## Mehrfach-Formate & Zuspielsysteme (`app/engine/disciplines.py`)
 

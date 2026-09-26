@@ -87,6 +87,54 @@ def test_substitution_limits_and_validation() -> None:
         engine.apply_event("substitution", {"side": "home", "player_out": 2, "player_in": 9})
 
 
+def test_return_substitution_rule_locks_pair_for_the_set() -> None:
+    engine = MatchEngine(Rules(substitutions_per_set=6))
+    start_set(engine)
+    engine.apply_event("substitution", {"side": "home", "player_out": 1, "player_in": 7})
+    # 7 darf zurückgetauscht werden, aber nur gegen 1 (nicht gegen einen Dritten).
+    with pytest.raises(RuleViolation):
+        engine.apply_event("substitution", {"side": "home", "player_out": 7, "player_in": 9})
+    # 2 ist noch frei, ein neues Paar zu bilden.
+    engine.apply_event("substitution", {"side": "home", "player_out": 2, "player_in": 8})
+    with pytest.raises(RuleViolation):
+        engine.apply_event("substitution", {"side": "home", "player_out": 8, "player_in": 1})
+    # Rückwechsel zum ursprünglichen Paar bleibt erlaubt.
+    engine.apply_event("substitution", {"side": "home", "player_out": 7, "player_in": 1})
+    engine.apply_event("substitution", {"side": "home", "player_out": 1, "player_in": 7})
+
+
+def test_return_substitution_rule_resets_each_set() -> None:
+    engine = MatchEngine(Rules(substitutions_per_set=6, points_per_set=1, min_lead=1))
+    start_set(engine)
+    engine.apply_event("substitution", {"side": "home", "player_out": 1, "player_in": 7})
+    win_set(engine, "home", points=1)
+    start_set(engine)
+    # Neuer Satz, neue Aufstellung -> das alte Paar bindet hier nicht mehr.
+    engine.apply_event("substitution", {"side": "home", "player_out": 1, "player_in": 9})
+
+
+def test_libero_replacement_is_unlimited_and_does_not_count_as_substitution() -> None:
+    engine = MatchEngine(Rules(substitutions_per_set=0))
+    start_set(engine)
+    for _ in range(3):
+        engine.apply_event("libero_replacement", {"side": "home", "player_out": 6, "player_in": 20})
+        engine.apply_event("libero_replacement", {"side": "home", "player_out": 20, "player_in": 6})
+    state = engine.state()
+    assert state["current_set"]["substitutions"]["home"] == 0
+    assert state["current_set"]["libero_replacements"]["home"] == 6
+    assert state["current_set"]["lineups"]["home"] == HOME
+
+
+def test_libero_replacement_still_validates_on_court_state() -> None:
+    engine = MatchEngine()
+    start_set(engine)
+    with pytest.raises(RuleViolation):
+        engine.apply_event("libero_replacement", {"side": "home", "player_out": 99, "player_in": 20})
+    engine.apply_event("libero_replacement", {"side": "home", "player_out": 6, "player_in": 20})
+    with pytest.raises(RuleViolation):
+        engine.apply_event("libero_replacement", {"side": "home", "player_out": 5, "player_in": 20})
+
+
 def test_correct_lineup_overrides_without_counting_as_substitution() -> None:
     engine = MatchEngine(Rules(substitutions_per_set=0))
     start_set(engine)
