@@ -330,6 +330,7 @@ def build_export_from_live_events(db: Session, match: Match) -> ExportMatch | No
     away_roster = list(db.scalars(select(Player).where(Player.team_id == away_team.id)))
 
     rules = Rules(
+        players_on_court=match.players_on_court,
         best_of=match.best_of,
         points_per_set=match.points_per_set,
         tiebreak_points=match.tiebreak_points,

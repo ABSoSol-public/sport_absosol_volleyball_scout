@@ -53,19 +53,22 @@ Löscht das Session-Cookie.
 ## Teams
 
 ### `GET /api/teams`
-Liste aller Teams. → `[{ "id": 1, "code": "TSV", "name": "TSV Heimstadt" }, …]`
+Liste aller Teams. → `[{ "id": 1, "code": "TSV", "name": "TSV Heimstadt", "setter_system": null }, …]`
 
 ### `POST /api/teams` → 201
 ```json
-{ "code": "TSV", "name": "TSV Heimstadt" }
+{ "code": "TSV", "name": "TSV Heimstadt", "setter_system": "5-1" }
 ```
-`code` (max. 8 Zeichen) ist eindeutig → 409 bei Doppelanlage.
+`code` (max. 8 Zeichen) ist eindeutig → 409 bei Doppelanlage. `setter_system` ist
+optional (`null`/weggelassen → keine Angabe) und eines von `5-1`, `6-2`, `4-2`, `6-6`
+— 422 bei anderem Wert. Rein informativ (siehe `docs/SPIELFORMATE.md`), keine
+Auswirkung auf die Live-Scouting-Regeln.
 
 ### `GET /api/teams/{team_id}`
 Team inkl. Kader:
 ```json
 {
-  "id": 1, "code": "TSV", "name": "TSV Heimstadt",
+  "id": 1, "code": "TSV", "name": "TSV Heimstadt", "setter_system": "5-1",
   "players": [
     { "id": 3, "number": 7, "last_name": "Musterfrau", "first_name": "Erika",
       "position": "Außenangreifer", "is_libero": false, "is_youth_player": false,
@@ -76,10 +79,11 @@ Team inkl. Kader:
 
 ### `PATCH /api/teams/{team_id}`
 ```json
-{ "code": "TSV", "name": "TSV Heimstadt e. V." }
+{ "code": "TSV", "name": "TSV Heimstadt e. V.", "setter_system": null }
 ```
-Beide Felder Pflicht (vollständiger Ersatz, kein Partial-Patch). 409 bei Code-Konflikt
-mit einem anderen Team, 404 bei unbekannter `team_id`.
+`code`/`name` Pflicht (vollständiger Ersatz, kein Partial-Patch), `setter_system`
+optional wie beim Anlegen. 409 bei Code-Konflikt mit einem anderen Team, 404 bei
+unbekannter `team_id`.
 
 ### `POST /api/teams/{team_id}/players` → 201
 ```json
@@ -105,6 +109,15 @@ mit einem anderen Spieler im selben Team, 404 bei unbekannter `team_id`/`player_
 
 ## Matches
 
+### `GET /api/disciplines`
+Liste aller Disziplin-Presets (Halle 6:6/4:4/3:3/2:2, Beach 2:2) —
+Startwerte für `POST /api/matches`, siehe `docs/SPIELFORMATE.md`:
+```json
+[{ "code": "hall_6", "label": "Halle 6:6", "players_on_court": 6, "best_of": 5,
+   "points_per_set": 25, "tiebreak_points": 15, "substitutions_per_set": 6,
+   "timeouts_per_set": 2, "has_libero": true, "has_rotation_zones": true }, …]
+```
+
 ### `GET /api/matches`
 Liste (absteigend nach Datum), jede Zeile enthält `home_team`/`away_team` als
 eingebettete Team-Objekte sowie den `status` (`scheduled` | `live` | `finished`).
@@ -116,15 +129,21 @@ eingebettete Team-Objekte sowie den `status` (`scheduled` | `live` | `finished`)
   "competition": "Oberliga",
   "home_team_id": 1,
   "away_team_id": 2,
-  "best_of": 5,
-  "points_per_set": 25,
-  "tiebreak_points": 15,
-  "substitutions_per_set": 6,
-  "timeouts_per_set": 2
+  "discipline": "hall_6",
+  "players_on_court": null,
+  "best_of": null,
+  "points_per_set": null,
+  "tiebreak_points": null,
+  "substitutions_per_set": null,
+  "timeouts_per_set": null
 }
 ```
-Die Regel-Felder sind optional (Defaults wie gezeigt) — damit sind auch
-Sonderformate (z. B. Best-of-3 bis 21) möglich. Heim- ≠ Gastteam, sonst 422.
+`discipline` (Default `hall_6`) wählt das Preset aus `GET /api/disciplines`
+(422 bei unbekanntem Code). Alle Regel-Felder sind optional/`null` → dann
+übernimmt der Preset-Wert; ein gesetzter Wert überschreibt ihn einzeln (z. B.
+`discipline: "beach_2"` mit `points_per_set: 15` für einen Verein, der Beach
+abweichend spielt). Heim- ≠ Gastteam, sonst 422. Antwort (`MatchRead`) enthält
+die aufgelösten Werte, nie `null`.
 
 ### `GET /api/matches/{match_id}`
 Einzelnes Match im selben Format wie die Liste.

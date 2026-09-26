@@ -7,6 +7,7 @@ from app.analyse_sync import sync_from_live_events
 from app.api.deps import require_writer
 from app.db.session import get_db
 from app.dvw.exporter import build_export_match, render_dvw
+from app.engine.disciplines import DISCIPLINE_PRESETS
 from app.engine.statistics import ActionRow, RallyRow, compute_match_statistics
 from app.models import LiveEvent, Match, MatchSet, Rally, Team, User
 from app.schemas.match import MatchCreate, MatchRead, MatchSetRead
@@ -55,7 +56,21 @@ def create_match(
             raise HTTPException(404, f"Team {team_id} nicht gefunden.")
     if data.home_team_id == data.away_team_id:
         raise HTTPException(422, "Heim- und Gastteam müssen unterschiedlich sein.")
-    match = Match(**data.model_dump())
+
+    preset = DISCIPLINE_PRESETS[data.discipline]
+    fields = data.model_dump()
+    for rule_field in (
+        "players_on_court",
+        "best_of",
+        "points_per_set",
+        "tiebreak_points",
+        "substitutions_per_set",
+        "timeouts_per_set",
+    ):
+        if fields[rule_field] is None:
+            fields[rule_field] = getattr(preset, rule_field)
+    fields["discipline"] = data.discipline.value
+    match = Match(**fields)
     db.add(match)
     db.commit()
     db.refresh(match)

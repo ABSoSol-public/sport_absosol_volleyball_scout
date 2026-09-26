@@ -2,6 +2,7 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.engine.disciplines import DEFAULT_DISCIPLINE, Discipline
 from app.schemas.team import TeamRead
 
 
@@ -10,11 +11,17 @@ class MatchCreate(BaseModel):
     competition: str = Field(default="", max_length=120)
     home_team_id: int
     away_team_id: int
-    best_of: int = Field(default=5, ge=1, le=9)
-    points_per_set: int = Field(default=25, ge=1)
-    tiebreak_points: int = Field(default=15, ge=1)
-    substitutions_per_set: int = Field(default=6, ge=0)
-    timeouts_per_set: int = Field(default=2, ge=0)
+    # Disziplin bestimmt die Preset-Werte für alle unten folgenden Regelfelder
+    # (app/engine/disciplines.py::DISCIPLINE_PRESETS) — jedes Feld bleibt aber
+    # explizit überschreibbar: `None` heißt "Preset-Wert übernehmen", ein
+    # gesetzter Wert überschreibt ihn (aufgelöst in app/api/matches.py::create_match).
+    discipline: Discipline = DEFAULT_DISCIPLINE
+    players_on_court: int | None = Field(default=None, ge=1, le=6)
+    best_of: int | None = Field(default=None, ge=1, le=9)
+    points_per_set: int | None = Field(default=None, ge=1)
+    tiebreak_points: int | None = Field(default=None, ge=1)
+    substitutions_per_set: int | None = Field(default=None, ge=0)
+    timeouts_per_set: int | None = Field(default=None, ge=0)
 
 
 class MatchRead(BaseModel):
@@ -24,6 +31,8 @@ class MatchRead(BaseModel):
     match_date: date
     competition: str
     status: str
+    discipline: str
+    players_on_court: int
     best_of: int
     points_per_set: int
     tiebreak_points: int

@@ -363,6 +363,34 @@ nav.topnav a:hover {
   padding: 0.3rem;
 }
 
+/* Aufstellungs-Slots für Formate ohne 6-Zonen-Rotationsraster (Beach 2:2,
+   Jugend-Kleinfeld 3:3/4:4/2:2, siehe hasRotationZones in LiveScoutView.vue)
+   — schlichte Liste statt Court-Optik, da hier keine echten Feldzonen gemeint sind. */
+.lineup-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-width: 260px;
+  margin: 0.5rem auto;
+}
+
+.lineup-slots .zone {
+  background: #f7e6c4;
+  border: 1px solid #e0c890;
+  border-radius: 6px;
+  text-align: center;
+  padding: 0.4rem;
+  font-weight: 600;
+  flex: 1 1 7rem;
+}
+
+.lineup-slots .zone small {
+  display: block;
+  font-weight: 400;
+  color: #8a7a55;
+  font-size: 0.7rem;
+}
+
 .clickpath {
   margin-bottom: 1rem;
 }

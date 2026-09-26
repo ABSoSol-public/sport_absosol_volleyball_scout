@@ -41,6 +41,8 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  listDisciplines: () => request("/disciplines"),
+
   listMatches: () => request("/matches"),
   createMatch: (data) => request("/matches", { method: "POST", body: JSON.stringify(data) }),
   getMatch: (id) => request(`/matches/${id}`),

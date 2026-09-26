@@ -6,7 +6,10 @@ Regelabbildung (Punkte, Side-Out, Rotation, Sätze, Wechsel, Auszeiten, Undo) un
 **Statistik-Auswertung** (Spieler-/Team-Kennzahlen, Rotationsanalyse) und einem
 **Match-Browser** (Satzverlauf + Statistik-Panel für importierte Spiele). Kader lassen
 sich vollständig nachbearbeiten (Team/Spieler, Position als Enum, Jugendspieler-
-Kennzeichnung); im Live-Scouting hilft ein drehbarer Zonen-Helfer bei der Zoneneingabe.
+Kennzeichnung, Zuspielsystem 5-1/6-2/4-2/6-6); im Live-Scouting hilft ein drehbarer
+Zonen-Helfer bei der Zoneneingabe. Neben Halle 6:6 unterstützt das Tool auch
+Jugend-Kleinfeldformen (2:2/3:3/4:4) und Beach-Volleyball 2:2 als eigene
+Disziplinen mit passenden Regel-Presets (siehe `docs/SPIELFORMATE.md`).
 Login-pflichtig mit Rollen (admin/viewer).
 
 ## Architektur
@@ -92,5 +95,6 @@ ist die App über den DSM-Reverse-Proxy unter `volleyball.<ddns-domain>.myds.me`
 - Datenbank (Schema, Event-Payloads, Migrationen, Betrieb): `docs/DATENBANK.md`
 - Versionsplan: `docs/ROADMAP.md`
 - DVW-Dateiformat: `docs/DVW-FORMAT.md`
+- Spielformate (Halle 6:6/4:4/3:3/2:2, Beach 2:2) & Zuspielsysteme (5-1/6-2/4-2/6-6): `docs/SPIELFORMATE.md`
 - Vollständige DataVolley-4-Referenz (Scout-Code, Formeln): Tiefenrecherche im
   übergeordneten Projektordner (`../recherche/`, nicht Teil dieses Repos)

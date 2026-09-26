@@ -11,13 +11,15 @@ const POSITIONS = [
   "Universalspieler",
 ];
 
+const SETTER_SYSTEMS = ["5-1", "6-2", "4-2", "6-6"];
+
 const teams = ref([]);
 const selectedTeam = ref(null);
 const error = ref("");
 
-const newTeam = ref({ code: "", name: "" });
+const newTeam = ref({ code: "", name: "", setter_system: "" });
 const editingTeamId = ref(null);
-const teamEdit = ref({ code: "", name: "" });
+const teamEdit = ref({ code: "", name: "", setter_system: "" });
 
 function blankPlayer() {
   return {
@@ -45,8 +47,8 @@ async function selectTeam(team) {
 async function createTeam() {
   error.value = "";
   try {
-    await api.createTeam(newTeam.value);
-    newTeam.value = { code: "", name: "" };
+    await api.createTeam({ ...newTeam.value, setter_system: newTeam.value.setter_system || null });
+    newTeam.value = { code: "", name: "", setter_system: "" };
     await loadTeams();
   } catch (e) {
     error.value = e.message;
@@ -55,7 +57,7 @@ async function createTeam() {
 
 function startEditTeam(team) {
   editingTeamId.value = team.id;
-  teamEdit.value = { code: team.code, name: team.name };
+  teamEdit.value = { code: team.code, name: team.name, setter_system: team.setter_system || "" };
 }
 
 function cancelEditTeam() {
@@ -65,7 +67,10 @@ function cancelEditTeam() {
 async function saveTeam(team) {
   error.value = "";
   try {
-    await api.updateTeam(team.id, teamEdit.value);
+    await api.updateTeam(team.id, {
+      ...teamEdit.value,
+      setter_system: teamEdit.value.setter_system || null,
+    });
     editingTeamId.value = null;
     await loadTeams();
     if (selectedTeam.value?.id === team.id) await selectTeam(team);
@@ -133,6 +138,15 @@ onMounted(loadTeams);
         <label for="new-team-name">Teamname</label>
         <input id="new-team-name" v-model="newTeam.name" placeholder="Vereinsname" required />
       </div>
+      <div class="field">
+        <label for="new-team-setter-system" title="Rein informativ — siehe docs/SPIELFORMATE.md">
+          Zuspielsystem
+        </label>
+        <select id="new-team-setter-system" v-model="newTeam.setter_system">
+          <option value="">– keine Angabe –</option>
+          <option v-for="s in SETTER_SYSTEMS" :key="s" :value="s">{{ s }}</option>
+        </select>
+      </div>
       <button type="submit">Anlegen</button>
     </form>
   </div>
@@ -140,13 +154,19 @@ onMounted(loadTeams);
   <div class="card">
     <table>
       <thead>
-        <tr><th>Code</th><th>Name</th><th></th></tr>
+        <tr><th>Code</th><th>Name</th><th title="Rein informativ">Zuspielsystem</th><th></th></tr>
       </thead>
       <tbody>
         <tr v-for="team in teams" :key="team.id">
           <template v-if="editingTeamId === team.id">
             <td><input v-model="teamEdit.code" maxlength="8" style="width: 6rem" /></td>
             <td><input v-model="teamEdit.name" style="width: 100%" /></td>
+            <td>
+              <select v-model="teamEdit.setter_system">
+                <option value="">–</option>
+                <option v-for="s in SETTER_SYSTEMS" :key="s" :value="s">{{ s }}</option>
+              </select>
+            </td>
             <td>
               <button @click="saveTeam(team)">Speichern</button>
               <button class="secondary" @click="cancelEditTeam">Abbrechen</button>
@@ -155,6 +175,7 @@ onMounted(loadTeams);
           <template v-else>
             <td>{{ team.code }}</td>
             <td>{{ team.name }}</td>
+            <td>{{ team.setter_system || "–" }}</td>
             <td>
               <button class="secondary" @click="selectTeam(team)">Kader</button>
               <button class="secondary" @click="startEditTeam(team)">Bearbeiten</button>

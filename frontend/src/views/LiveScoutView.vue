@@ -15,11 +15,28 @@ const roster = ref({ home: [], away: [] });
 // Aufstellungs-Eingabe je Zone (statt Freitext-Nummernliste): Nutzer wählt pro
 // Zone einen Spieler aus dem hinterlegten Kader, ähnlich der "Classic Mode"-
 // Nummernmaske in DataVolley (Zonen-Boxen), aber kaderbasiert statt Blindeingabe.
+// Slot-Anzahl kommt aus `match.players_on_court` (Mehrfach-Formate, siehe
+// app/engine/disciplines.py) statt fest auf 6 — vor dem Laden des Matches
+// ist 6 ein harmloser Platzhalter, `refresh()` blendet danach neu ein.
+function slotNumbers() {
+  const n = match.value?.players_on_court ?? 6;
+  return Array.from({ length: n }, (_, i) => i + 1);
+}
 function blankLineup() {
-  return { 1: null, 2: null, 3: null, 4: null, 5: null, 6: null };
+  const blank = {};
+  for (const slot of slotNumbers()) blank[slot] = null;
+  return blank;
 }
 const lineupInput = ref({ serving: "home" });
 const lineupSelection = ref({ home: blankLineup(), away: blankLineup() });
+
+// Das 6-Zonen-Rotationsraster (RotationCourt/VolleyballCourt) ist nur für die
+// reguläre 6:6-Hallenaufstellung sinnvoll darstellbar (siehe
+// DisciplinePreset.has_rotation_zones) — andere Formate (Beach 2:2, Jugend-
+// Kleinfeld 3:3/4:4/2:2) zeigen stattdessen eine schlichte Positions-Liste
+// ohne Feld-Helfer; Zonen lassen sich dort weiterhin per freier Scout-Code-
+// Eingabe erfassen.
+const hasRotationZones = computed(() => (match.value?.players_on_court ?? 6) === 6);
 
 const actionCodes = ref("");
 const sub = ref({ side: "home", player_out: null, player_in: null });
@@ -247,6 +264,11 @@ const current = computed(() => state.value?.current_set);
 // Engine-Lineup ist [Zone1, Zone2, ..., Zone6] → Index = Zone - 1.
 const ZONE_ORDER = [4, 3, 2, 5, 6, 1];
 
+// Für Formate ohne 6-Zonen-Rotationsraster (siehe hasRotationZones oben) eine
+// schlichte 1..N-Reihenfolge statt der Court-Optik.
+const lineupSlotOrder = computed(() => (hasRotationZones.value ? ZONE_ORDER : slotNumbers()));
+const slotLabel = (n) => (hasRotationZones.value ? `Zone ${n}` : `Position ${n}`);
+
 const correctLineup = ({ side, lineup }) =>
   run(() => api.correctLineup(props.id, { side, lineup }));
 
@@ -313,7 +335,12 @@ async function refresh() {
     api.getMatch(props.id),
     api.liveState(props.id),
   ]);
+  // Slot-Anzahl der leeren Aufstellungsmaske erst jetzt bekannt (siehe
+  // slotNumbers()) — verwirft eine bereits laufende Nutzerauswahl nicht, da
+  // dieser Reset nur beim ersten Laden vor jeder Auswahl greift.
+  lineupSelection.value = { home: blankLineup(), away: blankLineup() };
   await Promise.all([loadRoster(), loadHistory()]);
+  prefillLineupIfEmpty();
 }
 
 async function run(action) {
@@ -331,8 +358,8 @@ const startSet = () =>
   run(() =>
     api.startSet(props.id, {
       serving: lineupInput.value.serving,
-      home_lineup: [1, 2, 3, 4, 5, 6].map((zone) => lineupSelection.value.home[zone]),
-      away_lineup: [1, 2, 3, 4, 5, 6].map((zone) => lineupSelection.value.away[zone]),
+      home_lineup: slotNumbers().map((slot) => lineupSelection.value.home[slot]),
+      away_lineup: slotNumbers().map((slot) => lineupSelection.value.away[slot]),
     })
   );
 
@@ -436,15 +463,15 @@ onMounted(refresh);
           <p v-if="roster[side].length === 0" class="error" style="max-width: 16rem">
             Kader ist leer — zuerst unter „Teams" Spieler anlegen.
           </p>
-          <div v-else class="court court-wide">
-            <div v-for="zone in ZONE_ORDER" :key="zone" class="zone">
+          <div v-else :class="hasRotationZones ? 'court court-wide' : 'lineup-slots'">
+            <div v-for="zone in lineupSlotOrder" :key="zone" class="zone">
               <select v-model.number="lineupSelection[side][zone]" style="width: 100%">
                 <option :value="null">–</option>
                 <option v-for="p in roster[side]" :key="p.id" :value="p.number">
                   {{ p.number }} · {{ p.last_name }}{{ p.is_libero ? " (L)" : "" }}
                 </option>
               </select>
-              <small>Zone {{ zone }}</small>
+              <small>{{ slotLabel(zone) }}</small>
             </div>
           </div>
           <p v-if="duplicateNumbers(side)" class="error" style="text-align: center">
@@ -466,43 +493,64 @@ onMounted(refresh);
         @append="appendClickPathCode"
       />
 
-      <div class="helper-shared-toolbar">
-        <button type="button" class="secondary" @click="helperVertical = !helperVertical">
-          ⟳ 90° drehen
-        </button>
-        <button type="button" class="secondary" @click="helperSwapped = !helperSwapped">
-          ⇄ Seitenwechsel
-        </button>
-      </div>
-      <div class="field-helpers">
-        <div class="field-helper">
-          <h3 class="field-helper-title">Rotation</h3>
-          <RotationCourt
-            :vertical="helperVertical"
-            :swapped="helperSwapped"
-            :home-lineup="current.lineups.home"
-            :away-lineup="current.lineups.away"
-            :home-roster="roster.home"
-            :away-roster="roster.away"
-            :home-label="match.home_team.code"
-            :away-label="match.away_team.code"
-            :serving="current.serving"
-            @save-lineup="correctLineup"
-          />
+      <template v-if="hasRotationZones">
+        <div class="helper-shared-toolbar">
+          <button type="button" class="secondary" @click="helperVertical = !helperVertical">
+            ⟳ 90° drehen
+          </button>
+          <button type="button" class="secondary" @click="helperSwapped = !helperSwapped">
+            ⇄ Seitenwechsel
+          </button>
         </div>
-        <div class="field-helper">
-          <h3 class="field-helper-title">Zonen & Richtung</h3>
-          <VolleyballCourt
-            :vertical="helperVertical"
-            :swapped="helperSwapped"
-            :home-label="match.home_team.code"
-            :away-label="match.away_team.code"
-            @select="appendZone"
-          />
-          <p class="muted court-selection-hint" style="text-align: center">
-            Erster Klick = Startzone, zweiter Klick = Zielzone + Subzone (Richtung) —
-            rückt automatisch weiter, bei Bedarf oben manuell umschaltbar.
-          </p>
+        <div class="field-helpers">
+          <div class="field-helper">
+            <h3 class="field-helper-title">Rotation</h3>
+            <RotationCourt
+              :vertical="helperVertical"
+              :swapped="helperSwapped"
+              :home-lineup="current.lineups.home"
+              :away-lineup="current.lineups.away"
+              :home-roster="roster.home"
+              :away-roster="roster.away"
+              :home-label="match.home_team.code"
+              :away-label="match.away_team.code"
+              :serving="current.serving"
+              @save-lineup="correctLineup"
+            />
+          </div>
+          <div class="field-helper">
+            <h3 class="field-helper-title">Zonen & Richtung</h3>
+            <VolleyballCourt
+              :vertical="helperVertical"
+              :swapped="helperSwapped"
+              :home-label="match.home_team.code"
+              :away-label="match.away_team.code"
+              @select="appendZone"
+            />
+            <p class="muted court-selection-hint" style="text-align: center">
+              Erster Klick = Startzone, zweiter Klick = Zielzone + Subzone (Richtung) —
+              rückt automatisch weiter, bei Bedarf oben manuell umschaltbar.
+            </p>
+          </div>
+        </div>
+      </template>
+      <!-- Formate ohne 6-Zonen-Rotationsraster (Beach 2:2, Jugend-Kleinfeld
+           3:3/4:4/2:2, siehe hasRotationZones oben): kein Feld-Helfer, dafür
+           eine schlichte Aufstellungsanzeige — Zonen bei Bedarf per freier
+           Scout-Code-Eingabe oben erfassen. -->
+      <div v-else class="card">
+        <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap">
+          <div v-for="side in ['home', 'away']" :key="side">
+            <h3 class="field-helper-title" style="text-align: center">
+              {{ match[`${side}_team`].name }}
+            </h3>
+            <div class="lineup-slots">
+              <div v-for="(number, index) in current.lineups[side]" :key="index" class="zone">
+                {{ number }}
+                <small>Position {{ index + 1 }}</small>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { api } from "../api";
 
 const matches = ref([]);
 const teams = ref([]);
+const disciplines = ref([]);
 const error = ref("");
 
 const today = new Date().toISOString().slice(0, 10);
@@ -12,10 +13,15 @@ const newMatch = ref({
   competition: "",
   home_team_id: null,
   away_team_id: null,
+  discipline: "hall_6",
 });
 
 async function load() {
-  [matches.value, teams.value] = await Promise.all([api.listMatches(), api.listTeams()]);
+  [matches.value, teams.value, disciplines.value] = await Promise.all([
+    api.listMatches(),
+    api.listTeams(),
+    api.listDisciplines(),
+  ]);
 }
 
 async function createMatch() {
@@ -79,8 +85,18 @@ onMounted(load);
           <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
         </select>
       </div>
+      <div class="field">
+        <label for="new-match-discipline">Disziplin</label>
+        <select id="new-match-discipline" v-model="newMatch.discipline">
+          <option v-for="d in disciplines" :key="d.code" :value="d.code">{{ d.label }}</option>
+        </select>
+      </div>
       <button type="submit">Anlegen</button>
     </form>
+    <p v-if="disciplines.length" class="muted">
+      Regeln (Punkte/Sätze/Wechsel/Auszeiten) richten sich nach der Disziplin, lassen sich
+      aber je Match über die API einzeln anpassen — siehe docs/SPIELFORMATE.md.
+    </p>
     <p v-if="teams.length < 2">Zuerst mindestens zwei Teams unter „Teams“ anlegen.</p>
     <div class="form-row">
       <div class="field">
@@ -94,7 +110,7 @@ onMounted(load);
   <div class="card">
     <table>
       <thead>
-        <tr><th>Datum</th><th>Wettbewerb</th><th>Heim</th><th>Gast</th><th>Status</th><th></th></tr>
+        <tr><th>Datum</th><th>Wettbewerb</th><th>Heim</th><th>Gast</th><th>Disziplin</th><th>Status</th><th></th></tr>
       </thead>
       <tbody>
         <tr v-for="match in matches" :key="match.id">
@@ -102,6 +118,7 @@ onMounted(load);
           <td>{{ match.competition }}</td>
           <td>{{ match.home_team.name }}</td>
           <td>{{ match.away_team.name }}</td>
+          <td>{{ disciplines.find((d) => d.code === match.discipline)?.label ?? match.discipline }}</td>
           <td>{{ match.status }}</td>
           <td>
             <RouterLink v-if="match.status === 'finished'" :to="`/matches/${match.id}`">

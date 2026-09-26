@@ -39,6 +39,7 @@ def _load_match(match_id: int, db: Session) -> Match:
 
 def _rules(match: Match) -> Rules:
     return Rules(
+        players_on_court=match.players_on_court,
         best_of=match.best_of,
         points_per_set=match.points_per_set,
         tiebreak_points=match.tiebreak_points,

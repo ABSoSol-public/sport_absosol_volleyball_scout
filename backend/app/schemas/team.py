@@ -14,6 +14,25 @@ class PlayerPosition(str, Enum):
     UNIVERSAL = "Universalspieler"
 
 
+class SetterSystem(str, Enum):
+    """Zuspielsystem des Teams (rein informativ, siehe docs/SPIELFORMATE.md).
+
+    Beeinflusst **keine** Engine-Logik — `Player.is_primary_setter` +
+    dessen Fallback auf die Position "Zuspieler" (`app/engine/rotation.py::
+    setter_zone`) bilden bereits alle vier Systeme korrekt ab: bei 5-1/6-2
+    steht ohnehin nie mehr als ein Zuspieler gleichzeitig auf dem Feld
+    (Rotationsschema), bei 4-2 können beide gleichzeitig auf dem Feld stehen
+    — genau dafür existiert `is_primary_setter` als Tie-Breaker. Bei 6-6
+    (kein fester Zuspieler) bleibt die Zone einfach leer/„–", ebenfalls
+    korrekt. Das Feld dient nur der Dokumentation/Anzeige im Kader.
+    """
+
+    ONE_FIVE = "5-1"
+    SIX_TWO = "6-2"
+    FOUR_TWO = "4-2"
+    SIX_SIX = "6-6"
+
+
 class PlayerCreate(BaseModel):
     number: int = Field(ge=0, le=99)
     last_name: str = Field(min_length=1, max_length=80)
@@ -54,11 +73,13 @@ class PlayerRead(BaseModel):
 class TeamCreate(BaseModel):
     code: str = Field(min_length=1, max_length=8)
     name: str = Field(min_length=1, max_length=120)
+    setter_system: SetterSystem | None = None
 
 
 class TeamUpdate(BaseModel):
     code: str = Field(min_length=1, max_length=8)
     name: str = Field(min_length=1, max_length=120)
+    setter_system: SetterSystem | None = None
 
 
 class TeamRead(TeamCreate):

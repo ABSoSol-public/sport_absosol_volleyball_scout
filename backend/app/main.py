@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, imports, live, matches, teams
+from app.api import auth, imports, live, matches, meta, teams
 from app.api.deps import get_current_user
 from app.core.config import get_settings
 
@@ -25,6 +25,7 @@ app.include_router(teams.router, prefix=settings.api_prefix, dependencies=protec
 app.include_router(matches.router, prefix=settings.api_prefix, dependencies=protected)
 app.include_router(live.router, prefix=settings.api_prefix, dependencies=protected)
 app.include_router(imports.router, prefix=settings.api_prefix, dependencies=protected)
+app.include_router(meta.router, prefix=settings.api_prefix, dependencies=protected)
 
 
 @app.get("/health", tags=["health"])

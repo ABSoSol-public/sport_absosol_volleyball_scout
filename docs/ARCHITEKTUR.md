@@ -30,7 +30,7 @@ backend/
     schemas/           Pydantic-Request-/Response-Modelle
     engine/            Spiellogik + Statistik (DB-frei, siehe unten)
     dvw/               DVW-Parser + -Importer (Analyse-Strang, siehe docs/DVW-FORMAT.md)
-    api/               FastAPI-Router: auth, teams, matches, live, imports
+    api/               FastAPI-Router: auth, teams, matches, live, imports, meta (Disziplin-Presets)
     analyse_sync.py    Ableitung Analyse-Strang aus live_events (Roadmap 2.7, siehe unten)
     cli.py             Verwaltungs-CLI (create-user, via ../create-user.sh)
     main.py            App-Factory, CORS, Router-Registrierung, /health
@@ -183,11 +183,58 @@ oder Sonderformate möglich):
 - **Wechsel**: Limit pro Satz/Team (Default 6); validiert, dass der ausgewechselte
   Spieler auf dem Feld und der eingewechselte nicht auf dem Feld steht.
 - **Auszeiten**: Limit pro Satz/Team (Default 2).
-- **Aufstellungen**: exakt 6 eindeutige Spielernummern pro Team.
+- **Aufstellungen**: exakt `Rules.players_on_court` (Default 6) eindeutige
+  Spielernummern pro Team — seit den Mehrfach-Formaten (siehe unten) auch
+  2/3/4, nicht mehr fest 6.
 
 Bewusst noch **nicht** abgebildet (spätere Versionen): Libero-Tauschlogik,
 Rückwechsel-Regel (Spieler darf nur auf seine Position zurück), Setter-Tracking
 (`*z`/`az`-Äquivalent), Phasen Side-Out/Break für die Statistik.
+
+## Mehrfach-Formate & Zuspielsysteme (`app/engine/disciplines.py`)
+
+Volleyball wird nicht nur 6:6 in der Halle gespielt: Jugend-Kleinfeldformen
+(2:2/3:3/4:4) und Beach-Volleyball (2:2) haben eigene Regelwerke. `Rules`
+(`match_engine.py`) war dafür von Anfang an vollständig generisch —
+`players_on_court` war schon immer ein Feld, nur nie über `Match` befüllt
+(Default blieb stillschweigend 6). Diese Version macht das explizit:
+
+- **`Match.discipline`** (`hall_6`/`hall_4`/`hall_3`/`hall_2`/`beach_2`) +
+  **`Match.players_on_court`** (Migration `0008`) — beim Anlegen
+  (`POST /api/matches`) liefert `DISCIPLINE_PRESETS[data.discipline]`
+  Startwerte für alle Regelfelder (`players_on_court`, `best_of`,
+  `points_per_set`, `tiebreak_points`, `substitutions_per_set`,
+  `timeouts_per_set`); jedes Feld bleibt einzeln überschreibbar (`None` im
+  Request = Preset übernehmen, siehe `app/api/matches.py::create_match`).
+  `players_on_court` wird jetzt an allen drei Stellen, die `Rules(...)`
+  bauen, durchgereicht (`app/api/live.py`, `app/analyse_sync.py`,
+  `app/dvw/exporter.py`) — vorher liefen diese drei stillschweigend immer
+  mit dem `Rules`-Default 6, unabhängig vom tatsächlichen Match.
+- **`GET /api/disciplines`** (`app/api/meta.py`, eigener Router statt
+  Anhängen an `matches.py` wegen Pfadkollision mit `GET /matches/{match_id}`)
+  liefert alle Presets samt `has_libero`/`has_rotation_zones` fürs Frontend.
+- **Frontend**: `MatchesView.vue` bekommt beim Anlegen eine
+  Disziplin-Auswahl; `LiveScoutView.vue` löst die bisher an zwei Stellen fest
+  verdrahtete 6er-Annahme auf (`slotNumbers()`/`blankLineup()` statt
+  `{1..6: null}`, `ZONE_ORDER` nur noch für `hasRotationZones`-Disziplinen).
+  Für Disziplinen ohne 6-Zonen-Rotationsraster (`has_rotation_zones: false`)
+  blendet `LiveScoutView.vue` `RotationCourt`/`VolleyballCourt` komplett aus
+  und zeigt stattdessen eine schlichte Positionsliste — diese beiden
+  Komponenten bleiben bewusst auf die reguläre 6:6-Aufstellung ausgelegt statt
+  für jedes Format eine eigene Court-Grafik zu bekommen (Scouts erfassen
+  Zonen dort weiterhin per freier Scout-Code-Eingabe).
+- **`Team.setter_system`** (`5-1`/`6-2`/`4-2`/`6-6`, Migration `0008`,
+  `SetterSystem`-Enum in `app/schemas/team.py`) — rein informativ, **keine**
+  Engine-Auswirkung: die bereits bestehende `Player.is_primary_setter` +
+  ihr Fallback auf die Position „Zuspieler" (`app/engine/rotation.py::
+  setter_zone`) bildet alle vier Systeme bereits korrekt ab (5-1: nur ein
+  Zuspieler im Kader, ohnehin eindeutig; 6-2: nie beide gleichzeitig in
+  setzender Position auf dem Feld; 4-2: `is_primary_setter` löst die
+  Mehrdeutigkeit auf, wenn beide Zuspieler gleichzeitig auf dem Feld stehen;
+  6-6: kein Zuspieler markiert → Rotationscode bleibt leer, korrekt).
+
+Vollständige Recherche (Quellen, Presets im Detail, bewusste Lücken wie die
+nicht automatisierte „2-Punkte-in-Folge"-Jugendsonderregel): `docs/SPIELFORMATE.md`.
 
 ## Scout-Code-Parser (`app/engine/scout_code.py`)
 

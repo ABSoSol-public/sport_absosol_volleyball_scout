@@ -34,6 +34,10 @@ class Team(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(8), unique=True)
     name: Mapped[str] = mapped_column(String(120))
+    # Zuspielsystem (5-1/6-2/4-2/6-6) — rein informativ, siehe SetterSystem in
+    # app/schemas/team.py und docs/SPIELFORMATE.md. Freitext-VARCHAR wie
+    # Player.position: nur bei neuen Schreibzugriffen validiert.
+    setter_system: Mapped[str | None] = mapped_column(String(8), nullable=True)
 
     players: Mapped[list["Player"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
@@ -72,7 +76,12 @@ class Match(Base):
     competition: Mapped[str] = mapped_column(String(120), default="")
     home_team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
     away_team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"))
+    # Disziplin (Halle 6:6/4:4/3:3/2:2, Beach 2:2) — bestimmt die Preset-Werte
+    # unten beim Anlegen (app/engine/disciplines.py), bleibt danach nur noch
+    # Anzeige-/Auswertungskontext (z. B. Referenzgruppe für Spielerprofile).
+    discipline: Mapped[str] = mapped_column(String(16), default="hall_6")
     # Regulation (Roadmap: Regeln parametrisierbar wie im DV4-Vorbild)
+    players_on_court: Mapped[int] = mapped_column(default=6)
     best_of: Mapped[int] = mapped_column(default=5)
     points_per_set: Mapped[int] = mapped_column(default=25)
     tiebreak_points: Mapped[int] = mapped_column(default=15)

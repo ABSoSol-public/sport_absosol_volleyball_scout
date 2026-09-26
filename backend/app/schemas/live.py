@@ -7,8 +7,12 @@ Side = Literal["home", "away"]
 
 class StartSetRequest(BaseModel):
     serving: Side
-    home_lineup: list[int] = Field(min_length=6, max_length=6)
-    away_lineup: list[int] = Field(min_length=6, max_length=6)
+    # Länge nicht fix auf 6 begrenzt (Mehrfach-Formate, z. B. Beach 2:2/
+    # Jugend-Kleinfeld 3:3/4:4, siehe app/engine/disciplines.py) — die exakte
+    # Spieleranzahl je `Match.players_on_court` prüft `MatchEngine` (422 bei
+    # Abweichung), nicht das Schema.
+    home_lineup: list[int] = Field(min_length=1)
+    away_lineup: list[int] = Field(min_length=1)
 
 
 class RallyRequest(BaseModel):
@@ -29,7 +33,7 @@ class TimeoutRequest(BaseModel):
 
 class LineupCorrectionRequest(BaseModel):
     side: Side
-    lineup: list[int] = Field(min_length=6, max_length=6)
+    lineup: list[int] = Field(min_length=1)  # exakte Anzahl prüft MatchEngine, siehe oben
 
 
 class HistoryActionsUpdate(BaseModel):

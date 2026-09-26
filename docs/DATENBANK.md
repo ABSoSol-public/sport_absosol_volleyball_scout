@@ -17,7 +17,9 @@ SQLite in-memory. ORM-Definitionen: `backend/app/models/entities.py`.
   (Subzone/Angriffskombination, Version 2.5), `0006_player_primary_setter.py`
   (Referenz-Zuspieler fürs Rotationscode, Version 2.5),
   `0007_scout_action_timestamp.py` (Zeitstempel je Aktion für DVW-Import,
-  Version 2.6).
+  Version 2.6), `0008_disciplines_and_setter_system.py` (Mehrfach-Formate
+  `matches.discipline`/`players_on_court`, `teams.setter_system` —
+  siehe `docs/SPIELFORMATE.md`).
 - Im Container laufen Migrationen **automatisch** beim Start
   (`docker-entrypoint.sh`: auf DB warten → `alembic upgrade head` → uvicorn).
 - Neue Migration anlegen: `cd backend && .venv/bin/alembic revision -m "…"`
@@ -32,11 +34,13 @@ matches ──< live_events          ← Quelle der Wahrheit fürs Live-Scouting
 matches ──< match_sets ──< rallies ──< scout_actions   ← Analyse-/Import-Strang
 ```
 
-Wichtig: Der Live-Strang schreibt **nur `live_events`**. Der Analyse-Strang
-(`match_sets`/`rallies`/`scout_actions`) wird seit Version 2.1 vom
-**DVW-Import** befüllt (`POST /api/imports/dvw`, `backend/app/dvw/`);
-die Ableitung live gescouteter Spiele in denselben Strang folgt (ehem.
-Roadmap 1.7).
+Der Live-Strang schreibt zuerst **nur `live_events`** (Event-Sourcing, Quelle
+der Wahrheit). Der Analyse-Strang (`match_sets`/`rallies`/`scout_actions`)
+wird seit Version 2.1 vom **DVW-Import** befüllt (`POST /api/imports/dvw`,
+`backend/app/dvw/`) **und** seit Roadmap 2.7 automatisch aus `live_events`
+abgeleitet (`backend/app/analyse_sync.py`, nach jedem Live-Event/Undo/
+Historylog-Korrektur neu aufgebaut) — beide Wege münden in dieselben drei
+Tabellen, Statistik/Match-Browser unterscheiden nicht mehr nach Herkunft.
 
 ## Tabellen
 
@@ -57,6 +61,7 @@ Anlage/Passwort-Reset ausschließlich über `./create-user.sh` (keine Registrier
 | id | INT PK | |
 | code | VARCHAR(8) | UNIQUE — Kurzcode (DV4-Vorbild: 3 Buchstaben) |
 | name | VARCHAR(120) | |
+| setter_system | VARCHAR(8) NULL | Zuspielsystem `5-1`/`6-2`/`4-2`/`6-6` (Migration 0008) — rein informativ, siehe `docs/SPIELFORMATE.md` |
 
 ### `players`
 | Spalte | Typ | Hinweise |
@@ -77,6 +82,8 @@ Anlage/Passwort-Reset ausschließlich über `./create-user.sh` (keine Registrier
 | match_date | DATE | |
 | competition | VARCHAR(120) | |
 | home_team_id / away_team_id | INT FK→teams.id | |
+| discipline | VARCHAR(16) | `hall_6`/`hall_4`/`hall_3`/`hall_2`/`beach_2` (Migration 0008, Default `hall_6`) — Preset-Herkunft der Regel-Spalten, siehe `docs/SPIELFORMATE.md` |
+| players_on_court | INT | Default 6 (Migration 0008) — Feldbesetzung, geht direkt in `Rules.players_on_court` |
 | best_of | INT | Default 5 |
 | points_per_set | INT | Default 25 |
 | tiebreak_points | INT | Default 15 |

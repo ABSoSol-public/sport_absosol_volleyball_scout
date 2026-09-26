@@ -31,7 +31,11 @@ def create_team(
 ) -> Team:
     if db.scalar(select(Team).where(Team.code == data.code)):
         raise HTTPException(409, f"Team-Code {data.code!r} existiert bereits.")
-    team = Team(code=data.code, name=data.name)
+    team = Team(
+        code=data.code,
+        name=data.name,
+        setter_system=data.setter_system.value if data.setter_system else None,
+    )
     db.add(team)
     db.commit()
     db.refresh(team)
@@ -61,6 +65,7 @@ def update_team(
         raise HTTPException(409, f"Team-Code {data.code!r} existiert bereits.")
     team.code = data.code
     team.name = data.name
+    team.setter_system = data.setter_system.value if data.setter_system else None
     db.commit()
     db.refresh(team)
     return team
