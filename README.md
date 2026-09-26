@@ -97,9 +97,12 @@ ist die App über den DSM-Reverse-Proxy unter `volleyball.<ddns-domain>.myds.me`
 - API-Referenz (Endpunkte, Beispiele, Fehlersemantik): `docs/API.md` —
   interaktiv unter http://localhost:8000/docs
 - Datenbank (Schema, Event-Payloads, Migrationen, Betrieb): `docs/DATENBANK.md`
-- Versionsplan: `docs/ROADMAP.md`
+- Versionsplan: `docs/ROADMAP.md` (lokal/privat, nicht Teil dieses Repos —
+  siehe `docs/ENTSCHEIDUNGEN.md` für das öffentliche Gegenstück)
 - DVW-Dateiformat: `docs/DVW-FORMAT.md`
 - Spielformate (Halle 6:6/4:4/3:3/2:2, Beach 2:2) & Zuspielsysteme (5-1/6-2/4-2/6-6): `docs/SPIELFORMATE.md`
 - Spielerprofile (Karrierestatistik, Skill-Karte, Zonentendenzen): `docs/SPIELERPROFILE.md`
+- Anforderungen & Entscheidungen (wörtliche Nutzerzitate je Feature, chronologisch): `docs/ENTSCHEIDUNGEN.md`
+- Konventionen für KI-Sessions, die an diesem Repo arbeiten: `CLAUDE.md`
 - Vollständige DataVolley-4-Referenz (Scout-Code, Formeln): Tiefenrecherche im
   übergeordneten Projektordner (`../recherche/`, nicht Teil dieses Repos)
