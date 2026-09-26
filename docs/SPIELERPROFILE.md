@@ -1,11 +1,16 @@
 # Spielerprofile: Karrierestatistik, Skill-Karte & Tendenzen
 
-Nutzerwunsch: „ein spielerbasierendes Playbook nach Vorbild NFL (Profiling von
-Spielern über mehrere Saisons) und eine Spieler-Fähigkeiten-Kachel wie bei
-FIFA, mit Bewertung über die komplette Datenbank als Referenz über alle
-Spieler hinweg, dynamisch berechnet." Dieses Dokument beschreibt, wie das
-umgesetzt ist und warum an mehreren Stellen bewusst **keine** erfundenen
-Zahlen ins Spiel kommen.
+Nutzerwunsch (wörtlich): „das scouting tool soll auch nach dem vorbild von
+NFL ein spielerbasierendes playbook erstellen können (profiling von spielern
+über mehrere saisons) und wie bei fifa eine spieler fähigkeiten kachel
+erstellen ... mit bewertung über die komplette datenbank als referenz über
+alle spieler hinweg ... das muss dynamisch berechnet werden und mit daten
+natürlich angereichert werden ... die datenbank soll entsprechend dem
+kontext vollumfänglich verbessert und erweitert werden." Dieses Dokument
+beschreibt, wie das umgesetzt ist und warum an mehreren Stellen bewusst
+**keine** erfundenen Zahlen ins Spiel kommen. Die „Datenbank vollumfänglich
+erweitern"-Vorgabe führte zusätzlich zum neuen `Season`-Modell (siehe unten)
+— die einzige rein strukturelle Schemaerweiterung dieser Anfrage.
 
 ## Spieleridentität ohne eigene Tabelle
 

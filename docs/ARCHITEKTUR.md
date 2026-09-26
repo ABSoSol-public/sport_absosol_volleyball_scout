@@ -186,7 +186,12 @@ oder Sonderformate möglich):
   Rotation = Links-Shift.
 - **Wechsel**: Limit pro Satz/Team (Default 6); validiert, dass der ausgewechselte
   Spieler auf dem Feld und der eingewechselte nicht auf dem Feld steht.
-- **Rückwechsel-Regel** (per Web-Recherche verifiziert — u. a.
+- **Rückwechsel-Regel** (Nutzerentscheidung: knappes „weiter bitte" auf einen
+  vom Assistenten vorgeschlagenen Themenkatalog — Rückwechsel-Regel,
+  Libero-Sonderregeln, Setter-Tracking, Spieler-Leaderboard —, der Assistent
+  wählte die ersten beiden aus; keine vom Nutzer selbst benannte
+  Einzelanforderung wie bei den übrigen Punkten dieses Dokuments; per
+  Web-Recherche verifiziert — u. a.
   [Volleyballmag: How Volleyball Substitutions Work](https://volleyballmag.com/how-volleyball-substitutions-work-the-full-breakdown/),
   [JudgeMate: Volleyball Substitution Rules (FIVB 2025)](https://www.judgemate.com/en/guides/volleyball-substitution-rules)):
   ein einmal getauschtes Paar bleibt für den restlichen Satz

@@ -1,13 +1,21 @@
 # Spielformate & Zuspielsysteme
 
-Recherche- und Entscheidungsgrundlage für die Mehrfach-Formate-Unterstützung
-(`app/engine/disciplines.py`) — Volleyball wird nicht nur 6:6 in der Halle
-gespielt, und Teams unterscheiden sich zusätzlich darin, mit wie vielen
-Zuspielern sie ihre Rotation aufbauen. Beides betrifft dieses Tool an
-unterschiedlichen Stellen: die **Disziplin** bestimmt die Regelparameter eines
-Matches (Feldbesetzung, Punktziel, Wechsel-/Auszeitlimits), das
-**Zuspielsystem** ist eine reine Team-Eigenschaft ohne Einfluss auf die
-Engine-Regeln.
+Nutzerwunsch (wörtlich, mitten in der Session zur Spielerprofile-Anfrage
+nachgereicht): „beachte das im volleyball auch spieler in verschiedenen
+standards spielen können (beach 2 vs 2, halle jugend 2 vs. 2, 3vs3 4vs4 6vs6
+mit verschiedenen systemen: 5:1, 4:2 das beschreibt die zuspieler
+situation) nehm das mit auf recherchiere die systeme und bringe und
+dokumentiere das mit ein ... erweitere entsprechend das tool und
+dokumentiere alles sauber."
+
+Recherche- und Entscheidungsgrundlage für die daraus entstandene
+Mehrfach-Formate-Unterstützung (`app/engine/disciplines.py`) — Volleyball wird
+nicht nur 6:6 in der Halle gespielt, und Teams unterscheiden sich zusätzlich
+darin, mit wie vielen Zuspielern sie ihre Rotation aufbauen. Beides betrifft
+dieses Tool an unterschiedlichen Stellen: die **Disziplin** bestimmt die
+Regelparameter eines Matches (Feldbesetzung, Punktziel, Wechsel-/
+Auszeitlimits), das **Zuspielsystem** ist eine reine Team-Eigenschaft ohne
+Einfluss auf die Engine-Regeln.
 
 ## 1. Disziplinen (`Match.discipline`, `app/engine/disciplines.py`)
 
